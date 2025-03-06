@@ -5,7 +5,7 @@ const config = require('./src/config')
 const logger = require('./src/logger')
 
 function startServer() {
-  var server = new Haraka.Server()
+  const server = new Haraka.Server()
 
   server.load_config(path.join(__dirname, 'config'))
 

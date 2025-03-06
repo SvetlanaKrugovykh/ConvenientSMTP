@@ -1,0 +1,7 @@
+{
+  "dependencies": {
+    "fs": "^0.0.1-security",
+    "haraka": "^0.0.33",
+    "path": "^0.12.7"
+  }
+}
