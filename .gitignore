@@ -1,0 +1,12 @@
+keys
+data
+path
+node_modules
+temp
+.env*
+.vscode
+.idea
+.eslint*
+daemon
+config
+
