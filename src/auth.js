@@ -1,8 +1,8 @@
 // src/auth.js
-module.exports = function (connection, username, password, cb) {
-  if (username === 'admin' && password === 'secret') {
-    return cb(null, true)
+module.exports = function (auth, session, callback) {
+  console.log('onAuth called')
+  if (auth.username === 'user' && auth.password === 'pass') {
+    return callback(null, { user: 'userdata' })
   }
-  return cb(null, false)
+  return callback(new Error('Invalid username or password'))
 }
-

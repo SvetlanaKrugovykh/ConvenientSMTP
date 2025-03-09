@@ -9,4 +9,5 @@ temp
 .eslint*
 daemon
 config
+tests
 

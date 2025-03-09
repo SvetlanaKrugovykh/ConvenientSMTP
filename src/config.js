@@ -1,6 +1,8 @@
 
 // src/config.js
+require('dotenv').config()
+
 module.exports = {
-  port: 25,
-  allowed_ips: ['127.0.0.1', '192.168.1.100']
+  port: process.env.PORT || 2525,
+  // other configuration settings
 }
