@@ -6,16 +6,29 @@ const path = require('path')
 const auth = require('./src/auth')
 const relay = require('./src/relay')
 
-// Load blacklisted senders
-const blacklist = fs.readFileSync(path.join(__dirname, './config', 'blacklist.txt'), 'utf-8').split('\n').filter(Boolean)
+const blacklist = fs
+  .readFileSync(path.join(__dirname, './config', 'blacklist.txt'), 'utf-8')
+  .split('\n')
+  .map(email => email.trim())
+  .filter(Boolean)
 
-// Load allowed IPs for relay
-const allowedRelayIPs = fs.readFileSync(path.join(__dirname, './config', 'allowed_ips.txt'), 'utf-8').split('\n').filter(Boolean)
+const allowedRelayIPs = fs
+  .readFileSync(path.join(__dirname, './config', 'allowed_ips.txt'), 'utf-8')
+  .split('\n')
+  .map(ip => ip.trim())
+  .filter(Boolean)
 
-// Load valid recipients
-const validRecipients = fs.readFileSync(path.join(__dirname, './config', 'rcpt_to.in_host_list'), 'utf-8').split('\n').filter(Boolean)
+const validRecipients = fs
+  .readFileSync(path.join(__dirname, './config', 'rcpt_to.in_host_list'), 'utf-8')
+  .split('\n')
+  .map(email => email.trim())
+  .filter(Boolean)
 
-// Load forwarding rules
+console.log('Allowed relay IPs:', allowedRelayIPs)
+console.log('Blacklist:', blacklist)
+console.log('Valid recipients:', validRecipients)
+
+
 const forwardingRules = {
   blacklist,
   allowedRelayIPs,
@@ -25,8 +38,10 @@ const forwardingRules = {
 
 function handleOnData(stream, session, callback) {
   console.log('onData called')
-  relay(stream, session, callback, forwardingRules, server)
+  relay(stream, session, callback, forwardingRules, this)
+  stream.on('end', () => callback())
 }
+
 
 function handleOnAuth(authData, session, callback) {
   console.log('onAuth called')
@@ -41,10 +56,10 @@ function handleOnConnect(session, callback) {
 function handleOnMailFrom(address, session, callback) {
   console.log('onMailFrom called')
   console.log(`Client IP: ${session.remoteAddress}`)
-  // if (!forwardingRules.allowedRelayIPs.includes(session.remoteAddress)) {
-  //   console.log('IP not allowed for relay')
-  //   return callback(new Error('IP not allowed for relay'))
-  // }
+  if (!forwardingRules.allowedRelayIPs.includes(session.remoteAddress)) {
+    console.log('IP not allowed for relay')
+    return callback(new Error('IP not allowed for relay'))
+  }
   callback()
 }
 
