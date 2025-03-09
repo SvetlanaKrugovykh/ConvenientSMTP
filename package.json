@@ -1,7 +1,8 @@
 {
-  "dependencies": {
-    "fs": "^0.0.1-security",
-    "haraka": "^0.0.33",
-    "path": "^0.12.7"
-  }
+	"dependencies": {
+		"dotenv": "^16.4.7",
+		"fs": "^0.0.1-security",
+		"path": "^0.12.7",
+		"smtp-server": "^3.13.6"
+	}
 }
