@@ -1,6 +1,9 @@
 const { PassThrough } = require('stream')
 const logger = require('./logger')
 const { saveEmail } = require('../db/saveEmail')
+const simpleParser = require('mailparser').simpleParser
+const fs = require('fs')
+const path = require('path')
 
 module.exports.relay = function (stream, session, callback, forwardingRules, server) {
   const recipient = session.envelope.rcptTo[0].address.trim()
@@ -56,7 +59,22 @@ module.exports.relay = function (stream, session, callback, forwardingRules, ser
     logger.info(`Received email from ${from} to ${to}`)
     logger.info(`Email body: ${emailBody}`)
 
-    await saveEmail(to, from, 'No Subject', emailBody, []) // Save email to database WITHOUT attachments!!!
+    try {
+      const parsed = await simpleParser(emailBody)
+      const subject = parsed.subject || 'No Subject'
+      const attachments = parsed.attachments || []
+      const attachmentPaths = []
+      for (const attachment of attachments) {
+        const attachmentPath = path.join(__dirname, process.env.ATTACHMENT_PATH, attachment.filename)
+        fs.writeFileSync(attachmentPath, attachment.content)
+        attachmentPaths.push(attachmentPath)
+      }
+
+      await saveEmail(to, from, subject, emailBody, attachmentPaths)
+      logger.info('Email saved to database')
+    } catch (error) {
+      logger.error('Error saving email:', error)
+    }
 
     callback()
   })

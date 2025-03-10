@@ -71,7 +71,8 @@ module.exports.relayEmail = async function (emailData, callback) {
         to: session.envelope.rcptTo[0].address,
         subject: emailData.subject,
         text: emailData.text,
-        html: emailData.html
+        html: emailData.html,
+        attachments: emailData.attachments
       }
 
       transporter.sendMail(mailOptions, (error, info) => {
