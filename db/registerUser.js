@@ -19,8 +19,9 @@ module.exports.registerUser = async function (email, password) {
       text: 'INSERT INTO users (email, password) VALUES ($1, $2)',
       values: [email, hashedPassword]
     }
+    const result = await pool.query(query)
     console.log(`user registered: ${email} id: ${result.rows[0].id}`)
-    return pool.query(query)
+    return result.rows[0]
   } catch (error) {
     console.error('Error registering user:', error)
     return error

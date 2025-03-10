@@ -1,20 +1,21 @@
 const nodemailer = require('nodemailer')
 const config = require('./config')
-
-const transporter = nodemailer.createTransport({
-  host: config.server,
-  port: config.port,
-  secure: false,
-  tls: {
-    rejectUnauthorized: false
-  },
-  auth: {
-    user,
-    pass
-  }
-})
+require('dotenv').config()
 
 module.exports.sendMail = async function (from, to, subject, text, user, pass) {
+
+  const transporter = nodemailer.createTransport({
+    host: config.server,
+    port: config.port,
+    secure: false,
+    tls: {
+      rejectUnauthorized: false
+    },
+    auth: {
+      user,
+      pass
+    }
+  })
 
   let info = await transporter.sendMail({
     from,
@@ -27,6 +28,19 @@ module.exports.sendMail = async function (from, to, subject, text, user, pass) {
 }
 
 module.exports.relayEmail = async function (emailData, callback) {
+
+  const transporter = nodemailer.createTransport({
+    host: config.server,
+    port: config.port,
+    secure: false,
+    tls: {
+      rejectUnauthorized: false
+    },
+    auth: {
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASSWORD
+    }
+  })
 
   const mailOptions = {
     from: emailData.from,
