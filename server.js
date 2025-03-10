@@ -11,7 +11,7 @@ const updateTables = require('./db/tablesUpdate').updateTables
 try {
   updateTables()
 } catch (err) {
-  console.log(err)
+  logger.info(err)
 }
 
 const blacklist = fs
@@ -32,9 +32,9 @@ const validRecipients = fs
   .map(email => email.trim())
   .filter(Boolean)
 
-console.log('Allowed relay IPs:', allowedRelayIPs)
-console.log('Blacklist:', blacklist)
-console.log('Valid recipients:', validRecipients)
+logger.info('Allowed relay IPs:', allowedRelayIPs)
+logger.info('Blacklist:', blacklist)
+logger.info('Valid recipients:', validRecipients)
 
 
 const forwardingRules = {
@@ -45,27 +45,27 @@ const forwardingRules = {
 }
 
 function handleOnData(stream, session, callback) {
-  console.log('onData called')
+  logger.info('onData called')
   relay(stream, session, callback, forwardingRules, this)
   stream.on('end', () => callback())
 }
 
 
 function handleOnAuth(authData, session, callback) {
-  console.log('onAuth called')
+  logger.info('onAuth called')
   auth(authData, session, callback)
 }
 
 function handleOnConnect(session, callback) {
-  console.log('onConnect called')
+  logger.info('onConnect called')
   callback()
 }
 
 function handleOnMailFrom(address, session, callback) {
-  console.log('onMailFrom called')
-  console.log(`Client IP: ${session.remoteAddress}`)
+  logger.info('onMailFrom called')
+  logger.info(`Client IP: ${session.remoteAddress}`)
   if (!forwardingRules.allowedRelayIPs.includes(session.remoteAddress)) {
-    console.log('IP not allowed for relay')
+    logger.info('IP not allowed for relay')
     return callback(new Error('IP not allowed for relay'))
   }
   callback()
