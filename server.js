@@ -71,7 +71,7 @@ function handleOnMailFrom(address, session, callback) {
   callback()
 }
 
-function startServer() {
+module.exports.startServer = function () {
   const server = new SMTPServer({
     onData: handleOnData,
     onAuth: handleOnAuth,
@@ -93,4 +93,3 @@ function startServer() {
   })
 }
 
-startServer()
