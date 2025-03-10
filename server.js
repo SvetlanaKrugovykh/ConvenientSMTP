@@ -81,8 +81,11 @@ function startServer() {
     disabledCommands: ['STARTTLS'],
   })
 
+  // server.listen(config.server, config.port, () => { //TODO server
+  // })
+
   server.listen(config.port, () => {
-    logger.info('SMTP server started on port ' + config.port)
+    logger.info('SMTP server started on server ' + config.server + ' and port ' + config.port)
   })
 
   server.on('error', (err) => {
