@@ -5,6 +5,14 @@ const fs = require('fs')
 const path = require('path')
 const auth = require('./src/auth')
 const relay = require('./src/relay')
+require('dotenv').config()
+const updateTables = require('./db/tablesUpdate').updateTables
+
+try {
+  updateTables()
+} catch (err) {
+  console.log(err)
+}
 
 const blacklist = fs
   .readFileSync(path.join(__dirname, './config', 'blacklist.txt'), 'utf-8')
