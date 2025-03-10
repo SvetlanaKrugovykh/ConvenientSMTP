@@ -1,27 +1,28 @@
 const { PassThrough } = require('stream')
 const logger = require('./logger')
+const { saveEmail } = require('../db/saveEmail')
 
-module.exports = function (stream, session, callback, forwardingRules, server) {
+module.exports.relay = function (stream, session, callback, forwardingRules, server) {
   const recipient = session.envelope.rcptTo[0].address.trim()
   const sender = session.envelope.mailFrom.address.trim()
   let emailBody = ''
 
-  console.log('Checking recipient:', recipient)
-  console.log('Checking sender:', sender)
+  logger.info('Checking recipient:', recipient)
+  logger.info('Checking sender:', sender)
 
   if (!forwardingRules.validRecipients.map(e => e.trim()).includes(recipient)) {
-    console.log('Recipient is not allowed')
+    logger.info('Recipient is not allowed')
     return callback(new Error('Recipient is not allowed'))
   }
 
   if (forwardingRules.blacklist.map(e => e.trim()).includes(sender)) {
-    console.log('Sender is blacklisted')
+    logger.info('Sender is blacklisted')
     return callback(new Error('Sender is blacklisted'))
   }
 
   if (forwardingRules.rules[recipient]) {
     forwardingRules.rules[recipient].forEach(forwardAddress => {
-      console.log(`Forwarding email to ${forwardAddress}`)
+      logger.info(`Forwarding email to ${forwardAddress}`)
 
       const forwardStream = new PassThrough()
       stream.pipe(forwardStream)
@@ -52,10 +53,10 @@ module.exports = function (stream, session, callback, forwardingRules, server) {
   stream.on('end', async () => {
     const to = session.envelope.rcptTo[0].address
     const from = session.envelope.mailFrom.address
-    console.log(`Received email from ${from} to ${to}`)
-    console.log(`Email body: ${emailBody}`)
+    logger.info(`Received email from ${from} to ${to}`)
+    logger.info(`Email body: ${emailBody}`)
 
-    await saveEmail(to, from, 'No Subject', emailBody, []) // Save email to database WITHOUT attachments!!! //TODO
+    await saveEmail(to, from, 'No Subject', emailBody, []) // Save email to database WITHOUT attachments!!!
 
     callback()
   })

@@ -1,5 +1,6 @@
 const { Pool } = require('pg')
 const dotenv = require('dotenv')
+const logger = require('../src/logger')
 
 dotenv.config()
 
@@ -11,7 +12,7 @@ const pool = new Pool({
   port: process.env.PAY_DB_PORT,
 })
 
-async function saveEmail(to, from, subject, body, attachments = []) {
+module.exports.saveEmail = async function (to, from, subject, body, attachments = []) {
   const client = await pool.connect()
   try {
     await client.query('BEGIN')
@@ -28,10 +29,10 @@ async function saveEmail(to, from, subject, body, attachments = []) {
     }
 
     await client.query('COMMIT')
-    console.log('Email saved successfully:', emailId)
+    logger.info('Email saved successfully:', emailId)
   } catch (err) {
     await client.query('ROLLBACK')
-    console.error('Error saving email:', err)
+    logger.error('Error saving email:', err)
   } finally {
     client.release()
   }

@@ -17,4 +17,12 @@ const logger = createLogger({
   ]
 })
 
+console.log = (message) => {
+  logger.info(message)
+}
+
+console.error = (message) => {
+  logger.error(message)
+}
+
 module.exports = logger
