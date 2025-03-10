@@ -2,7 +2,7 @@ const nodemailer = require('nodemailer')
 const config = require('./config')
 require('dotenv').config()
 
-module.exports.sendMail = async function (from, to, subject, text, user, pass) {
+module.exports.sendEMail = async function (from, to, subject, text, user, pass) {
 
   const transporter = nodemailer.createTransport({
     host: config.server,

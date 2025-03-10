@@ -1,6 +1,6 @@
 // index.js
 const server = require('./server')
-const tests = require('./tests/sendmail')
+const tests = require('./tests/runTests')
 require('dotenv').config()
 
 server.startServer()
