@@ -4,7 +4,8 @@ const logger = require('./src/logger')
 const fs = require('fs')
 const path = require('path')
 const auth = require('./src/auth')
-const relay = require('./src/relay')
+const { relay } = require('./src/relay')
+const { forwardRules } = require('./config/forwarding-rules')
 require('dotenv').config()
 const updateTables = require('./db/tablesUpdate').updateTables
 
@@ -37,16 +38,16 @@ logger.info('Blacklist:', blacklist)
 logger.info('Valid recipients:', validRecipients)
 
 
-const forwardingRules = {
+module.exports.forwardingRules = {
   blacklist,
   allowedRelayIPs,
   validRecipients,
-  rules: require('./config/forwarding-rules')
+  forwardRules
 }
 
 function handleOnData(stream, session, callback) {
   logger.info('onData called')
-  relay(stream, session, callback, forwardingRules, this)
+  relay(stream, session, callback, this)
   stream.on('end', () => callback())
 }
 
@@ -64,31 +65,33 @@ function handleOnConnect(session, callback) {
 function handleOnMailFrom(address, session, callback) {
   logger.info('onMailFrom called')
   logger.info(`Client IP: ${session.remoteAddress}`)
-  if (!forwardingRules.allowedRelayIPs.includes(session.remoteAddress)) {
+  if (!module.exports.forwardingRules.allowedRelayIPs.includes(session.remoteAddress)) {
     logger.info('IP not allowed for relay')
     return callback(new Error('IP not allowed for relay'))
   }
   callback()
 }
 
+
+module.exports.server = new SMTPServer({
+  onData: handleOnData,
+  onAuth: handleOnAuth,
+  onConnect: handleOnConnect,
+  onMailFrom: handleOnMailFrom,
+  logger: true,
+  disabledCommands: ['STARTTLS'],
+})
+
 module.exports.startServer = function () {
-  const server = new SMTPServer({
-    onData: handleOnData,
-    onAuth: handleOnAuth,
-    onConnect: handleOnConnect,
-    onMailFrom: handleOnMailFrom,
-    logger: true,
-    disabledCommands: ['STARTTLS'],
-  })
 
   // server.listen(config.server, config.port, () => { //TODO server
   // })
 
-  server.listen(config.port, () => {
+  module.exports.server.listen(config.port, () => {
     logger.info('SMTP server started on server ' + config.server + ' and port ' + config.port)
   })
 
-  server.on('error', (err) => {
+  module.exports.server.on('error', (err) => {
     logger.error('Server ERROR: ' + err.message)
   })
 }

@@ -1,11 +1,13 @@
 const { PassThrough } = require('stream')
 const logger = require('./logger')
+const srv = require('../server')
 const { saveEmail } = require('../db/saveEmail')
 const simpleParser = require('mailparser').simpleParser
 const fs = require('fs')
 const path = require('path')
 
-module.exports.relay = function (stream, session, callback, forwardingRules, server) {
+
+module.exports.relay = function (stream, session, callback, server) {
   const recipient = session.envelope.rcptTo[0].address.trim()
   const sender = session.envelope.mailFrom.address.trim()
   let emailBody = ''
@@ -13,38 +15,55 @@ module.exports.relay = function (stream, session, callback, forwardingRules, ser
   logger.info('Checking recipient:', recipient)
   logger.info('Checking sender:', sender)
 
-  if (!forwardingRules.validRecipients.map(e => e.trim()).includes(recipient)) {
+  if (!srv.forwardingRules.validRecipients.map(e => e.trim()).includes(recipient)) {
     logger.info('Recipient is not allowed')
     return callback(new Error('Recipient is not allowed'))
   }
 
-  if (forwardingRules.blacklist.map(e => e.trim()).includes(sender)) {
+  if (srv.forwardingRules.blacklist.map(e => e.trim()).includes(sender)) {
     logger.info('Sender is blacklisted')
     return callback(new Error('Sender is blacklisted'))
   }
 
-  if (forwardingRules.rules[recipient]) {
-    forwardingRules.rules[recipient].forEach(forwardAddress => {
-      logger.info(`Forwarding email to ${forwardAddress}`)
+  if (srv.forwardingRules.forwardRules[recipient]) {
+    const forwardAddresses = srv.forwardingRules.forwardRules[recipient]
+    logger.info('Forwarding email to:', forwardAddresses)
 
-      const forwardStream = new PassThrough()
-      stream.pipe(forwardStream)
-
-      const forwardSession = {
-        envelope: {
-          mailFrom: session.envelope.mailFrom,
-          rcptTo: [{ address: forwardAddress }]
-        }
-      }
-
-      server.onData(forwardStream, forwardSession, (err) => {
-        if (err) {
-          logger.error('Error forwarding email: ' + err.message)
+    if (Array.isArray(forwardAddresses)) {
+      forwardAddresses.forEach((forwardAddress, index) => {
+        logger.info(`Forwarding email to ${forwardAddress} (index: ${index})`)
+        if (session.envelope.mailFrom.address.trim() === forwardAddress.trim()) {
+          logger.info(`Skipping forwarding to ${forwardAddress} as it matches the sender address`)
           return
         }
-        logger.info('Email forwarded to ' + forwardAddress)
+
+        const forwardStream = new PassThrough()
+        stream.pipe(forwardStream)
+
+        const forwardSession = {
+          envelope: {
+            mailFrom: session.envelope.mailFrom,
+            rcptTo: [{ address: forwardAddress }]
+          }
+        }
+
+        logger.info('Forward session:', forwardSession)
+
+        try {
+          srv.server.onData(forwardStream, forwardSession, (err) => {
+            if (err) {
+              logger.error('Error forwarding email: ' + err.message)
+              return
+            }
+            logger.info('Email forwarded to ' + forwardAddress)
+          })
+        } catch (error) {
+          logger.error('Exception in server.onData: ' + error.message)
+        }
       })
-    })
+    } else {
+      logger.error('forwardAddresses is not an array:', forwardAddresses)
+    }
   }
 
   stream.on('data', (chunk) => {
