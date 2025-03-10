@@ -4,6 +4,7 @@ const logger = require('./logger')
 module.exports = function (stream, session, callback, forwardingRules, server) {
   const recipient = session.envelope.rcptTo[0].address.trim()
   const sender = session.envelope.mailFrom.address.trim()
+  let emailBody = ''
 
   console.log('Checking recipient:', recipient)
   console.log('Checking sender:', sender)
@@ -42,6 +43,20 @@ module.exports = function (stream, session, callback, forwardingRules, server) {
     })
   }
 
+  stream.on('data', (chunk) => {
+    emailBody += chunk.toString()
+  })
+
   stream.pipe(process.stdout)
-  stream.on('end', callback)
+
+  stream.on('end', async () => {
+    const to = session.envelope.rcptTo[0].address
+    const from = session.envelope.mailFrom.address
+    console.log(`Received email from ${from} to ${to}`)
+    console.log(`Email body: ${emailBody}`)
+
+    await saveEmail(to, from, 'No Subject', emailBody, []) // Save email to database WITHOUT attachments!!! //TODO
+
+    callback()
+  })
 }
