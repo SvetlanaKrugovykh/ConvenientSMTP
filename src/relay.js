@@ -49,7 +49,7 @@ module.exports.relay = function (stream, session, callback, server) {
         logger.info('Forward session:', forwardSession)
 
         try {
-          server.onData(forwardStream, forwardSession, (err) => {
+          server.server.onData(forwardStream, forwardSession, (err) => {
             if (err) {
               logger.error('Error forwarding email: ' + err.message)
               return
