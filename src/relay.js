@@ -1,11 +1,10 @@
 const { PassThrough } = require('stream')
 const logger = require('./logger')
-const srv = require('../server')
 const { saveEmail } = require('../db/saveEmail')
 const simpleParser = require('mailparser').simpleParser
 const fs = require('fs')
 const path = require('path')
-
+const configData = require('./config')
 
 module.exports.relay = function (stream, session, callback, server) {
   const recipient = session.envelope.rcptTo[0].address.trim()
@@ -15,18 +14,18 @@ module.exports.relay = function (stream, session, callback, server) {
   logger.info('Checking recipient:', recipient)
   logger.info('Checking sender:', sender)
 
-  if (!srv.forwardingRules.validRecipients.map(e => e.trim()).includes(recipient)) {
+  if (!configData.forwardingRules.validRecipients.map(e => e.trim()).includes(recipient)) {
     logger.info('Recipient is not allowed')
     return callback(new Error('Recipient is not allowed'))
   }
 
-  if (srv.forwardingRules.blacklist.map(e => e.trim()).includes(sender)) {
+  if (configData.forwardingRules.blacklist.map(e => e.trim()).includes(sender)) {
     logger.info('Sender is blacklisted')
     return callback(new Error('Sender is blacklisted'))
   }
 
-  if (srv.forwardingRules.forwardRules[recipient]) {
-    const forwardAddresses = srv.forwardingRules.forwardRules[recipient]
+  if (configData.forwardingRules.forwardRules[recipient]) {
+    const forwardAddresses = configData.forwardingRules.forwardRules[recipient]
     logger.info('Forwarding email to:', forwardAddresses)
 
     if (Array.isArray(forwardAddresses)) {
@@ -50,7 +49,7 @@ module.exports.relay = function (stream, session, callback, server) {
         logger.info('Forward session:', forwardSession)
 
         try {
-          srv.server.onData(forwardStream, forwardSession, (err) => {
+          server.onData(forwardStream, forwardSession, (err) => {
             if (err) {
               logger.error('Error forwarding email: ' + err.message)
               return
