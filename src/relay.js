@@ -1,10 +1,11 @@
 const { PassThrough } = require('stream')
 const logger = require('./logger')
-const { saveEmail } = require('../db/saveEmail')
+const { saveEmail, reSendToTheTelegram } = require('../db/saveEmail')
 const simpleParser = require('mailparser').simpleParser
 const fs = require('fs')
 const path = require('path')
 const configData = require('./config')
+const server = require('../server')
 
 module.exports.relay = function (stream, session, callback, server) {
   const recipient = session.envelope.rcptTo[0].address.trim()
@@ -49,7 +50,7 @@ module.exports.relay = function (stream, session, callback, server) {
         logger.info('Forward session:', forwardSession)
 
         try {
-          server.server.onData(forwardStream, forwardSession, (err) => {
+          server.onData(forwardStream, forwardSession, (err) => {
             if (err) {
               logger.error('Error forwarding email: ' + err.message)
               return
@@ -89,6 +90,7 @@ module.exports.relay = function (stream, session, callback, server) {
       }
 
       await saveEmail(to, from, subject, emailBody, attachmentPaths)
+      await reSendToTheTelegram(to, from, subject, emailBody, attachmentPaths)
       logger.info('Email saved to database')
     } catch (error) {
       logger.error('Error saving email:', error)

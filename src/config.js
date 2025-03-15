@@ -22,11 +22,23 @@ const validRecipients = fs
 
 const forwardRules = require('../config/forwarding-rules').forwardRules
 
+const rcptToTg = fs
+  .readFileSync(path.join(__dirname, '../config', 'rcpt_to_tg.in_list'), 'utf-8')
+  .split('\n')
+  .map(line => line.split(';')) // Исправляем разделение строк
+  .reduce((acc, [email, tgId]) => {
+    if (email && tgId) {
+      acc[email.trim()] = tgId.trim()
+    }
+    return acc
+  }, {})
+
 const forwardingRules = {
   blacklist,
   allowedRelayIPs,
   validRecipients,
-  forwardRules
+  forwardRules,
+  rcptToTg
 }
 
 module.exports = {
