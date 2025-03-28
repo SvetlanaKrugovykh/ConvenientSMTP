@@ -5,6 +5,7 @@ const simpleParser = require('mailparser').simpleParser
 const fs = require('fs')
 const path = require('path')
 const configData = require('./config')
+const server = require('../server')
 
 module.exports.relay = function (stream, session, callback, server) {
   const recipient = session.envelope.rcptTo[0].address.trim()
@@ -75,7 +76,6 @@ module.exports.relay = function (stream, session, callback, server) {
     const to = session.envelope.rcptTo[0].address
     const from = session.envelope.mailFrom.address
     logger.info(`Received email from ${from} to ${to}`)
-    logger.info(`Email body: ${emailBody}`)
 
     try {
       const parsed = await simpleParser(emailBody)
@@ -91,6 +91,7 @@ module.exports.relay = function (stream, session, callback, server) {
         attachmentPaths.push(attachmentPath)
       }
 
+      logger.info('Email received and parsed. Attachments:', attachments.map(a => a.filename))
       await saveEmail(to, from, subject, emailBody, attachmentPaths)
       await reSendToTheTelegram(to, from, subject, emailBody, attachmentPaths)
       logger.info('Email saved to database')
