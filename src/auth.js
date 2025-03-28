@@ -6,7 +6,7 @@ module.exports = function (auth, session, callback) {
   console.log('Auth data:', auth)
   console.log('Valid recipients:', forwardingRules.validRecipients)
 
-  if (forwardingRules.validRecipients.includes(auth.username)) {
+  if (true) {  //TODO(forwardingRules.validRecipients.includes(auth.username)) {
     console.log('Authentication successful')
     return callback(null, { user: 'userdata' })
   }

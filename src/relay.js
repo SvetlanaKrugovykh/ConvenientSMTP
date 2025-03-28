@@ -45,6 +45,7 @@ module.exports.relay = function (stream, session, callback, server) {
       const text = parsed.html || parsed.text
       const attachments = parsed.attachments || []
       const attachmentPaths = []
+      const forwardArray = configData.forwardingRules.forwardRules[recipient] 
       for (const attachment of attachments) {
         const attachmentDir = path.isAbsolute(process.env.ATTACHMENT_PATH)
           ? process.env.ATTACHMENT_PATH
@@ -59,10 +60,17 @@ module.exports.relay = function (stream, session, callback, server) {
 
       logger.info('Email received and parsed. Attachments:', attachments.map((a) => a.filename))
       await saveEmail(to, from, subject, text, attachmentPaths)
-      await reSendToTheTelegram(to, from, subject, text, attachmentPaths)
+      await reSendToTheTelegram(to, from, subject, text, attachmentPaths, forwardArray)
 
-      if (process.env.DO_FORWARD === 'true' && configData.forwardingRules.forwardRules[recipient]) {
-        forwardEmail(stream, session, recipient, server, configData)
+      if (process.env.DO_FORWARD === 'true' && forwardArray) {
+        const letterData = {
+          to,
+          from,
+          subject,
+          text,
+          attachmentPaths,
+        }
+        forwardEmail(stream, recipient, configData, letterData)
       }
 
       logger.info('Email saved to database')
