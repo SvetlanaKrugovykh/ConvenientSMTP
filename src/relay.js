@@ -6,6 +6,7 @@ const fs = require('fs')
 const path = require('path')
 const configData = require('./config')
 const server = require('../server')
+const { forwardEmail } = require('./forwardEmail')
 
 module.exports.relay = function (stream, session, callback, server) {
   const recipient = session.envelope.rcptTo[0].address.trim()
@@ -15,55 +16,14 @@ module.exports.relay = function (stream, session, callback, server) {
   logger.info('Checking recipient:', recipient)
   logger.info('Checking sender:', sender)
 
-  if (!configData.forwardingRules.validRecipients.map(e => e.trim()).includes(recipient)) {
+  if (!configData.forwardingRules.validRecipients.map((e) => e.trim()).includes(recipient)) {
     logger.info('Recipient is not allowed')
     return callback(new Error('Recipient is not allowed'))
   }
 
-  if (configData.forwardingRules.blacklist.map(e => e.trim()).includes(sender)) {
+  if (configData.forwardingRules.blacklist.map((e) => e.trim()).includes(sender)) {
     logger.info('Sender is blacklisted')
     return callback(new Error('Sender is blacklisted'))
-  }
-
-  if (configData.forwardingRules.forwardRules[recipient]) {
-    const forwardAddresses = configData.forwardingRules.forwardRules[recipient]
-    logger.info('Forwarding email to:', forwardAddresses)
-
-    if (Array.isArray(forwardAddresses)) {
-      forwardAddresses.forEach((forwardAddress, index) => {
-        logger.info(`Forwarding email to ${forwardAddress} (index: ${index})`)
-        if (session.envelope.mailFrom.address.trim() === forwardAddress.trim()) {
-          logger.info(`Skipping forwarding to ${forwardAddress} as it matches the sender address`)
-          return
-        }
-
-        const forwardStream = new PassThrough()
-        stream.pipe(forwardStream)
-
-        const forwardSession = {
-          envelope: {
-            mailFrom: session.envelope.mailFrom,
-            rcptTo: [{ address: forwardAddress }]
-          }
-        }
-
-        logger.info('Forward session:', forwardSession)
-
-        try {
-          server.onData(forwardStream, forwardSession, (err) => {
-            if (err) {
-              logger.error('Error forwarding email: ' + err.message)
-              return
-            }
-            logger.info('Email forwarded to ' + forwardAddress)
-          })
-        } catch (error) {
-          logger.error('Exception in server.onData: ' + error.message)
-        }
-      })
-    } else {
-      logger.error('forwardAddresses is not an array:', forwardAddresses)
-    }
   }
 
   stream.on('data', (chunk) => {
@@ -80,20 +40,29 @@ module.exports.relay = function (stream, session, callback, server) {
     try {
       const parsed = await simpleParser(emailBody)
       const subject = parsed.subject || 'No Subject'
+      const text = parsed.html || parsed.text
       const attachments = parsed.attachments || []
       const attachmentPaths = []
       for (const attachment of attachments) {
-        const attachmentPath = path.isAbsolute(process.env.ATTACHMENT_PATH)
-          ? path.join(process.env.ATTACHMENT_PATH, attachment.filename)
-          : path.join(__dirname, process.env.ATTACHMENT_PATH, attachment.filename)
+        const attachmentDir = path.isAbsolute(process.env.ATTACHMENT_PATH)
+          ? process.env.ATTACHMENT_PATH
+          : path.join(__dirname, process.env.ATTACHMENT_PATH)
+
+        if (!fs.existsSync(attachmentDir)) fs.mkdirSync(attachmentDir, { recursive: true })
+        const attachmentPath = path.join(attachmentDir, attachment.filename)
 
         fs.writeFileSync(attachmentPath, attachment.content)
         attachmentPaths.push(attachmentPath)
       }
 
-      logger.info('Email received and parsed. Attachments:', attachments.map(a => a.filename))
-      await saveEmail(to, from, subject, emailBody, attachmentPaths)
-      await reSendToTheTelegram(to, from, subject, emailBody, attachmentPaths)
+      logger.info('Email received and parsed. Attachments:', attachments.map((a) => a.filename))
+      await saveEmail(to, from, subject, text, attachmentPaths)
+      await reSendToTheTelegram(to, from, subject, text, attachmentPaths)
+
+      if (process.env.DO_FORWARD === 'true' && configData.forwardingRules.forwardRules[recipient]) {
+        forwardEmail(stream, session, recipient, server, configData)
+      }
+
       logger.info('Email saved to database')
     } catch (error) {
       logger.error('Error saving email:', error)
