@@ -4,6 +4,7 @@ const logger = require('./src/logger')
 const path = require('path')
 const auth = require('./src/auth')
 const { relay } = require('./src/relay')
+const { checkBlacklists, checkSPF, checkPTR } = require('./src/security')
 require('dotenv').config()
 const updateTables = require('./db/tablesUpdate').updateTables
 
@@ -29,18 +30,45 @@ function handleOnAuth(authData, session, callback) {
   auth(authData, session, callback)
 }
 
-function handleOnConnect(session, callback) {
-  logger.info('onConnect called')
+async function handleOnConnect(session, callback) {
+  logger.info(`Incoming connection from ${session.remoteAddress}`)
+
+  try {
+    const blacklisted = await checkBlacklists(session.remoteAddress)
+    if (blacklisted) {
+      logger.warn(`Blocked IP: ${session.remoteAddress}`)
+      return callback(new Error('Your IP is blacklisted'))
+    }
+
+    const ptrValid = await checkPTR(session.remoteAddress)
+    if (!ptrValid) {
+      logger.warn(`Invalid PTR record for ${session.remoteAddress}`)
+      return callback(new Error('PTR record check failed'))
+    }
+
+  } catch (err) {
+    logger.error(`DNS check failed: ${err.message}`)
+    return callback(new Error('Temporary error, try later'))
+  }
+
   callback()
 }
 
-function handleOnMailFrom(address, session, callback) {
-  logger.info('onMailFrom called')
+async function handleOnMailFrom(address, session, callback) {
+  logger.info(`Mail from: ${address.address} | IP: ${session.remoteAddress}`)
   logger.info(`Client IP: ${session.remoteAddress}`)
-  if (!configData.forwardingRules.allowedRelayIPs.includes(session.remoteAddress)) {
-    logger.info('IP not allowed for relay')
-    return callback(new Error('IP not allowed for relay'))
+
+  if (configData.forwardingRules.allowedRelayIPs.includes(session.remoteAddress)) {
+    logger.info(`SPF check skipped for allowed IP: ${session.remoteAddress}`)
+    return callback()
   }
+
+  const spfValid = await checkSPF(address.address, session.remoteAddress)
+  if (!spfValid) {
+    logger.warn(`SPF check failed for ${address.address}`)
+    return callback(new Error('SPF check failed'))
+  }
+
   callback()
 }
 
