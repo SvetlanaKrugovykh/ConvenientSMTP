@@ -1,12 +1,14 @@
 const { PassThrough } = require('stream')
 const logger = require('./logger')
-const { saveEmail, reSendToTheTelegram } = require('../db/saveEmail')
+const { saveEmail } = require('../db/saveEmail')
+const { reSendToTheTelegram } = require('./reSendToTheTg')
 const simpleParser = require('mailparser').simpleParser
 const fs = require('fs')
 const path = require('path')
 const configData = require('./config')
 const server = require('../server')
 const { forwardEmail } = require('./forwardEmail')
+require('dotenv').config()
 
 module.exports.relay = function (stream, session, callback, server) {
   const recipient = session.envelope.rcptTo[0].address.trim()
