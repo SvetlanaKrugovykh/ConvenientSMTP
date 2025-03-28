@@ -5,7 +5,6 @@ const simpleParser = require('mailparser').simpleParser
 const fs = require('fs')
 const path = require('path')
 const configData = require('./config')
-const server = require('../server')
 
 module.exports.relay = function (stream, session, callback, server) {
   const recipient = session.envelope.rcptTo[0].address.trim()
@@ -84,7 +83,10 @@ module.exports.relay = function (stream, session, callback, server) {
       const attachments = parsed.attachments || []
       const attachmentPaths = []
       for (const attachment of attachments) {
-        const attachmentPath = path.join(__dirname, process.env.ATTACHMENT_PATH, attachment.filename)
+        const attachmentPath = path.isAbsolute(process.env.ATTACHMENT_PATH)
+          ? path.join(process.env.ATTACHMENT_PATH, attachment.filename)
+          : path.join(__dirname, process.env.ATTACHMENT_PATH, attachment.filename)
+
         fs.writeFileSync(attachmentPath, attachment.content)
         attachmentPaths.push(attachmentPath)
       }
