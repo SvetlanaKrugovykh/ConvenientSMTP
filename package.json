@@ -8,6 +8,7 @@
 		"nodemailer": "^6.10.0",
 		"path": "^0.12.7",
 		"pg": "^8.13.3",
+		"smtp-connection": "^4.0.2",
 		"smtp-server": "^3.13.6",
 		"stream": "^0.0.3",
 		"winston": "^3.17.0"

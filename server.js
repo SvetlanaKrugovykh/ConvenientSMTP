@@ -3,7 +3,8 @@ const configData = require('./src/config')
 const logger = require('./src/logger')
 const path = require('path')
 const auth = require('./src/auth')
-const { relay } = require('./src/relay')
+const { relay: relayReceive } = require('./src/relayReceive')
+const { relay: relaySend } = require('./src/relaySend')
 const { checkBlacklists, checkSPF, checkPTR } = require('./src/security')
 require('dotenv').config()
 const updateTables = require('./db/tablesUpdate').updateTables
@@ -18,9 +19,25 @@ logger.info('Allowed relay IPs:', configData.forwardingRules.allowedRelayIPs)
 logger.info('Blacklist:', configData.forwardingRules.blacklist)
 logger.info('Valid recipients:', configData.forwardingRules.validRecipients)
 
+
 function handleOnData(stream, session, callback) {
   logger.info('onData called')
-  relay(stream, session, callback, configData, this)
+
+  const sender = session.envelope.mailFrom.address.toLowerCase()
+  const recipient = session.envelope.rcptTo[0].address.toLowerCase()
+
+  if (configData.forwardingRules.validRecipients.includes(recipient)) {
+    logger.info('Handling as relayReceive (incoming mail)')
+    relayReceive(stream, session, callback, configData, this)
+  }
+  else if (configData.forwardingRules.validRecipients.includes(sender)) {
+    logger.info('Handling as relaySend (outgoing mail)')
+    relaySend(stream, session, callback, configData, this)
+  } else {
+    logger.warn('Neither sender nor recipient matches validRecipients. Rejecting.')
+    return callback(new Error('Unauthorized relay attempt'))
+  }
+
   stream.on('end', () => callback())
 }
 
