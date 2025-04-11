@@ -16,28 +16,17 @@ module.exports.forwardEmail = async function (stream, recipient, configData, let
       }
 
       try {
-        const transporter = nodemailer.createTransport({
-          host: process.env.SMTP_HOST || 'localhost',
-          port: process.env.SMTP_PORT || 25,
-          secure: false,
-          auth: {
-            user: process.env.SMTP_USER,
-            pass: process.env.SMTP_PASS,
-          },
-        })
-
         const chunks = []
         stream.on('data', (chunk) => chunks.push(chunk))
         stream.on('end', async () => {
           const emailContent = Buffer.concat(chunks).toString()
 
-          await transporter.sendMail({
-            from,
-            to: forwardAddress,
-            raw: emailContent,
-          })
-
-          logger.info(`Email forwarded to ${forwardAddress}`)
+          const success = await sendEmail(forwardAddress, from, emailContent)
+          if (success) {
+            logger.info(`Email successfully forwarded to ${forwardAddress}`)
+          } else {
+            logger.error(`Failed to forward email to ${forwardAddress}`)
+          }
         })
       } catch (error) {
         logger.error(`Error forwarding email to ${forwardAddress}: ${error.message}`)
@@ -45,5 +34,29 @@ module.exports.forwardEmail = async function (stream, recipient, configData, let
     }
   } else {
     logger.error('forwardAddresses is not an array:', forwardAddresses)
+  }
+}
+
+async function sendEmail(forwardAddress, from, rawEmail) {
+  const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: process.env.EMAIL_USER_SILVER,
+      pass: process.env.EMAIL_PASSWORD_SILVER,
+    },
+  })
+
+  const mailOptions = {
+    from: process.env.EMAIL_USER_SILVER,
+    raw: rawEmail,
+  }
+
+  try {
+    await transporter.sendMail(mailOptions)
+    logger.info(`Message to ${forwardAddress} sent successfully`)
+    return true
+  } catch (error) {
+    logger.error(`Error sending email to ${forwardAddress}: ${error.message}`)
+    return false
   }
 }
