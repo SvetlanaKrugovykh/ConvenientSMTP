@@ -2,8 +2,8 @@ const nodemailer = require('nodemailer')
 const logger = require('./logger')
 require('dotenv').config()
 
-module.exports.forwardEmail = async function (stream, recipient, configData, letterData) {
-  const { to, from } = letterData
+module.exports.forwardEmail = async function (recipient, configData, letterData) {
+  const { to, from, subject, text, attachmentPaths } = letterData
   const forwardAddresses = configData.forwardingRules.forwardRules[recipient]
   logger.info('Forwarding email to:', forwardAddresses)
 
@@ -16,18 +16,12 @@ module.exports.forwardEmail = async function (stream, recipient, configData, let
       }
 
       try {
-        const chunks = []
-        stream.on('data', (chunk) => chunks.push(chunk))
-        stream.on('end', async () => {
-          const emailContent = Buffer.concat(chunks).toString()
-
-          const success = await sendEmail(forwardAddress, from, emailContent)
-          if (success) {
-            logger.info(`Email successfully forwarded to ${forwardAddress}`)
-          } else {
-            logger.error(`Failed to forward email to ${forwardAddress}`)
-          }
-        })
+        const success = await sendEmail(forwardAddress, from, subject, text, attachmentPaths)
+        if (success) {
+          logger.info(`Email successfully forwarded to ${forwardAddress}`)
+        } else {
+          logger.error(`Failed to forward email to ${forwardAddress}`)
+        }
       } catch (error) {
         logger.error(`Error forwarding email to ${forwardAddress}: ${error.message}`)
       }
@@ -37,7 +31,7 @@ module.exports.forwardEmail = async function (stream, recipient, configData, let
   }
 }
 
-async function sendEmail(forwardAddress, from, rawEmail) {
+async function sendEmail(forwardAddress, from, subject, text, attachmentPaths) {
   const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
@@ -48,7 +42,13 @@ async function sendEmail(forwardAddress, from, rawEmail) {
 
   const mailOptions = {
     from: process.env.EMAIL_USER_SILVER,
-    raw: rawEmail,
+    to: forwardAddress,
+    subject: subject || 'Forwarded Email',
+    text: text || '',
+    replyTo: from,
+    attachments: attachmentPaths.map((filePath) => ({
+      path: filePath,
+    })),
   }
 
   try {

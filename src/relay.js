@@ -45,7 +45,7 @@ module.exports.relay = function (stream, session, callback, server) {
       const text = parsed.html || parsed.text
       const attachments = parsed.attachments || []
       const attachmentPaths = []
-      const forwardArray = configData.forwardingRules.forwardRules[recipient] 
+      const forwardArray = configData.forwardingRules.forwardRules[recipient]
       for (const attachment of attachments) {
         const attachmentDir = path.isAbsolute(process.env.ATTACHMENT_PATH)
           ? process.env.ATTACHMENT_PATH
@@ -70,7 +70,7 @@ module.exports.relay = function (stream, session, callback, server) {
           text,
           attachmentPaths,
         }
-        forwardEmail(stream, recipient, configData, letterData)
+        forwardEmail(recipient, configData, letterData)
       }
 
       logger.info('Email saved to database')
