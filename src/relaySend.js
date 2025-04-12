@@ -100,20 +100,48 @@ function buildRawMessage({ sender, recipient, subject, text, attachmentPaths }) 
   message += `MIME-Version: 1.0\r\n`
 
   if (attachmentPaths && attachmentPaths.length) {
-    message += `Content-Type: multipart/mixed boundary=${boundary}\r\n\r\n`
-    message += `--${boundary}\r\nContent-Type: text/plain\r\n\r\n${text}\r\n`
+    message += `Content-Type: multipart/mixed; boundary="${boundary}"\r\n\r\n`
+    message += `--${boundary}\r\n`
+    message += `Content-Type: text/plain; charset="utf-8"\r\n`
+    message += `Content-Transfer-Encoding: 7bit\r\n\r\n`
+    message += `${text}\r\n\r\n`
+
     attachmentPaths.forEach((filePath) => {
       const filename = filePath.split('/').pop()
       const content = fs.readFileSync(filePath).toString('base64')
-      message += `\r\n--${boundary}\r\n`
-      message += `Content-Type: application/octet-stream name="${filename}"\r\n`
-      message += `Content-Disposition: attachment filename="${filename}"\r\n`
-      message += `Content-Transfer-Encoding: base64\r\n\r\n${content}\r\n`
+      const mimeType = getMimeType(filename)
+      console.log(`MIME type for ${filename}: ${mimeType}`)
+
+      message += `--${boundary}\r\n`
+      message += `Content-Type: ${mimeType}; name="${filename}"\r\n`
+      message += `Content-Disposition: attachment; filename="${filename}"\r\n`
+      message += `Content-Transfer-Encoding: base64\r\n\r\n`
+      message += `${content}\r\n\r\n`
     })
-    message += `--${boundary}--`
+
+    message += `--${boundary}--\r\n`
   } else {
-    message += `Content-Type: text/plain\r\n\r\n${text}\r\n`
+    message += `Content-Type: text/plain; charset="utf-8"\r\n`
+    message += `Content-Transfer-Encoding: 7bit\r\n\r\n`
+    message += `${text}\r\n`
   }
 
   return message
+}
+
+function getMimeType(filename) {
+  const extension = filename.split('.').pop().toLowerCase()
+  switch (extension) {
+    case 'png':
+      return 'image/png'
+    case 'jpg':
+    case 'jpeg':
+      return 'image/jpeg'
+    case 'pdf':
+      return 'application/pdf'
+    case 'txt':
+      return 'text/plain'
+    default:
+      return 'application/octet-stream'
+  }
 }
