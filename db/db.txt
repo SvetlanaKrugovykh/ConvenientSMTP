@@ -1,3 +1,7 @@
 & "C:\Program Files\PostgreSQL\16\bin\psql.exe" -U postgres -h localhost -c "CREATE DATABASE mail WITH ENCODING='UTF8' LC_COLLATE='uk_UA.UTF-8' LC_CTYPE='uk_UA.UTF-8' TEMPLATE=template0;"
 
 psql -U postgres -h localhost -c "CREATE DATABASE mail WITH ENCODING='UTF8' LC_COLLATE='uk_UA.UTF-8' LC_CTYPE='uk_UA.UTF-8' TEMPLATE=template0;"
+
+=============================== .7 ====================================
+& "C:\Program Files\PostgreSQL\16\bin\psql.exe" -U postgres -h localhost -c "CREATE DATABASE mail WITH ENCODING='UTF8' LOCALE_PROVIDER='icu' ICU_LOCALE='uk-UA' TEMPLATE=template0;"
+=============================== .7 ====================================

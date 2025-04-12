@@ -104,7 +104,8 @@ const server = new SMTPServer({
 module.exports.server = server
 
 module.exports.startServer = function () {
-  server.listen(configData.port, () => {
+  server.listen(configData.port, configData.server, () => {
+    console.log(`${configData.server}:${configData.port}`)
     logger.info('SMTP server started on server ' + configData.server + ' and port ' + configData.port)
   })
 
