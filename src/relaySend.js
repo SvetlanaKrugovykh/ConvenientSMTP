@@ -94,9 +94,13 @@ function buildRawMessage({ sender, recipient, subject, text, attachmentPaths }) 
   let message = ''
   const boundary = '----=_NodeMailerBoundary'
 
+  const messageId = `<${Date.now()}-${Math.random().toString(36).substring(2)}@${sender.split('@')[1]}>`
+  console.log(`Generated Message-ID: ${messageId}`)
+
   message += `From: ${sender}\r\n`
   message += `To: ${recipient}\r\n`
   message += `Subject: ${subject}\r\n`
+  message += `Message-ID: ${messageId}\r\n`
   message += `MIME-Version: 1.0\r\n`
 
   if (attachmentPaths && attachmentPaths.length) {
