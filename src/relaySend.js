@@ -8,8 +8,8 @@ require('dotenv').config()
 
 
 module.exports.relaySend = async function (stream, session, callback, configData) {
-  const sender = session.envelope.mailFrom.address.trim()
-  const recipients = session.envelope.rcptTo.map((rcpt) => rcpt.address.trim())
+  const sender = session.envelope.mailFrom.address.trim().toLowerCase()
+  const recipients = session.envelope.rcptTo.map((rcpt) => rcpt.address.trim().toLowerCase())
 
   logger.info(`relaySend called for sender: ${sender}, recipients: ${recipients.join(', ')}`)
 
@@ -116,28 +116,28 @@ function buildRawMessage({ sender, recipient, subject, text, attachmentPaths }) 
   message += `MIME-Version: 1.0\r\n`
 
   if (attachmentPaths && attachmentPaths.length) {
-    message += `Content-Type: multipart/mixed boundary="${boundary}"\r\n\r\n`
+    message += `Content-Type: multipart/mixed; boundary="${boundary}"\r\n\r\n`
     message += `--${boundary}\r\n`
-    message += `Content-Type: text/plain charset="utf-8"\r\n`
+    message += `Content-Type: text/plain; charset="utf-8"\r\n`
     message += `Content-Transfer-Encoding: 7bit\r\n\r\n`
     message += `${text}\r\n\r\n`
 
     attachmentPaths.forEach((filePath) => {
-      const filename = filePath.split('/').pop()
+      const filename = path.basename(filePath)
       const content = fs.readFileSync(filePath).toString('base64')
       const mimeType = getMimeType(filename)
       console.log(`MIME type for ${filename}: ${mimeType}`)
 
-      message += `--${boundary}\r\n`
-      message += `Content-Type: ${mimeType} name="${filename}"\r\n`
-      message += `Content-Disposition: attachment filename="${filename}"\r\n`
+      message += `--${boundary}\r\n`;
+      message += `Content-Type: ${mimeType}; name="${filename}"\r\n`
+      message += `Content-Disposition: attachment; filename="${filename}"\r\n`
       message += `Content-Transfer-Encoding: base64\r\n\r\n`
       message += `${content}\r\n\r\n`
-    })
+    });
 
     message += `--${boundary}--\r\n`
   } else {
-    message += `Content-Type: text/plain charset="utf-8"\r\n`
+    message += `Content-Type: text/plain; charset="utf-8"\r\n`
     message += `Content-Transfer-Encoding: 7bit\r\n\r\n`
     message += `${text}\r\n`
   }
