@@ -23,34 +23,42 @@ function handleOnData(stream, session, callback) {
 
   const sender = session.envelope.mailFrom.address.toLowerCase()
   const recipients = session.envelope.rcptTo.map((rcpt) => rcpt.address.toLowerCase())
+  const remoteIP = session.remoteAddress
+
   logger.info('Sender:', sender)
   logger.info('Recipients:', recipients.join(', '))
-  logger.info('Remote IP:', session.remoteAddress)
+  logger.info('Remote IP:', remoteIP)
 
-  if (session.remoteAddress === configData.server) {
-    if (recipients.some((recipient) => !configData.forwardingRules.validRecipients.includes(recipient))) {
-      logger.info('Handling as relaySend (outgoing mail from local server)')
+  const isValidRecipient = (addr) => configData.forwardingRules.validRecipients.includes(addr)
+  const isAllowedRelayIP = configData.forwardingRules.allowedRelayIPs.includes(remoteIP)
+
+  if (remoteIP === configData.server) {
+    if (
+      recipients.some((recipient) => !isValidRecipient(recipient))
+    ) {
+      logger.info('Handling as relaySend (outgoing mail from local server or allowed IP)')
       relaySend(stream, session, callback, configData)
     } else {
       logger.info('Handling as relayReceiveLocal (local incoming mail)')
       relayReceiveLocal(stream, session, callback, configData)
     }
-  }
-  else if (recipients.some((recipient) => configData.forwardingRules.validRecipients.includes(recipient))) {
+  } else if (recipients.some(isValidRecipient)) {
     logger.info('Handling as relayReceiveExternal (external incoming mail)')
     relayReceiveExternal(stream, session, callback, configData)
-  }
-  else if (configData.forwardingRules.validRecipients.includes(sender)) {
-    logger.info('Handling as relaySend (outgoing mail)')
+  } else if (
+    isValidRecipient(sender) || isAllowedRelayIP
+  ) {
+    logger.info('Handling as relaySend (outgoing mail from allowed external IP)')
     relaySend(stream, session, callback, configData)
-  }
-  else {
+  } else {
     logger.warn('Neither sender nor recipients match validRecipients. Rejecting.')
     return callback(new Error('Unauthorized relay attempt'))
   }
 
   stream.on('end', () => callback())
 }
+
+
 
 function handleOnAuth(authData, session, callback) {
   logger.info('onAuth called')

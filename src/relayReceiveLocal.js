@@ -3,8 +3,8 @@ const simpleParser = require('mailparser').simpleParser
 const { processEmail } = require('./processEmail')
 
 module.exports.relayReceiveLocal = async function (stream, session, callback, configData) {
-  const recipients = session.envelope.rcptTo.map((rcpt) => rcpt.address.trim())
-  const sender = session.envelope.mailFrom.address.trim()
+  const recipients = session.envelope.rcptTo.map((rcpt) => rcpt.address.trim().toLowerCase())
+  const sender = session.envelope.mailFrom.address.trim().toLowerCase()
   let emailBody = ''
 
   logger.info('relayReceiveLocal called for local incoming mail')
@@ -25,15 +25,13 @@ module.exports.relayReceiveLocal = async function (stream, session, callback, co
     emailBody += chunk.toString()
   })
 
-  stream.pipe(process.stdout)
-
   stream.on('end', async () => {
     logger.info(`Received email from ${sender} to ${recipients.join(', ')}`)
 
     try {
       const parsed = await simpleParser(emailBody)
       const subject = parsed.subject || 'No Subject'
-      const text = parsed.html || parsed.text
+      const text = parsed.text || parsed.html || ''
       const attachments = parsed.attachments || []
 
       logger.info('Email received and parsed. Attachments:', attachments.map((a) => a.filename))

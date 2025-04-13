@@ -11,12 +11,12 @@ module.exports.relayReceiveExternal = async function (stream, session, callback,
   logger.info('Checking recipients:', recipients.join(', '))
   logger.info('Checking sender:', sender)
 
-  if (!recipients.some((recipient) => configData.forwardingRules.validRecipients.map((e) => e.trim().toLowerCase()).includes(recipient))) {
+  if (!recipients.some((recipient) => configData.forwardingRules.validRecipients.map((e) => e.trim()).includes(recipient))) {
     logger.info('No valid recipients found for external email')
     return callback(new Error('No valid recipients found'))
   }
 
-  if (configData.forwardingRules.blacklist.map((e) => e.trim().toLowerCase()).includes(sender)) {
+  if (configData.forwardingRules.blacklist.map((e) => e.trim()).includes(sender)) {
     logger.info('Sender is blacklisted (external)')
     return callback(new Error('Sender is blacklisted'))
   }
@@ -26,10 +26,12 @@ module.exports.relayReceiveExternal = async function (stream, session, callback,
   })
 
   stream.on('end', async () => {
+    logger.info(`Received external email from ${sender} to ${recipients.join(', ')}`)
+
     try {
       const parsed = await simpleParser(emailBody)
       const subject = parsed.subject || 'No Subject'
-      const text = parsed.html || parsed.text
+      const text = parsed.text || parsed.html || ''
       const attachments = parsed.attachments || []
 
       logger.info(`Parsed external email from ${sender} to ${recipients.join(', ')}`)

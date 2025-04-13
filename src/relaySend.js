@@ -1,8 +1,11 @@
 const dns = require('dns').promises
 const SMTPConnection = require('smtp-connection')
 const fs = require('fs')
+const path = require('path')
 const logger = require('./logger')
 const simpleParser = require('mailparser').simpleParser
+require('dotenv').config()
+
 
 module.exports.relaySend = async function (stream, session, callback, configData) {
   const sender = session.envelope.mailFrom.address.trim()
@@ -89,7 +92,9 @@ function saveAttachments(attachments) {
   }
 
   attachments.forEach((attachment) => {
-    const attachmentPath = `${attachmentDir}/${attachment.filename}`
+    const filename = path.basename(attachment.filename)
+    const attachmentPath = path.join(attachmentDir, filename)
+
     fs.writeFileSync(attachmentPath, attachment.content)
     attachmentPaths.push(attachmentPath)
   })
@@ -111,9 +116,9 @@ function buildRawMessage({ sender, recipient, subject, text, attachmentPaths }) 
   message += `MIME-Version: 1.0\r\n`
 
   if (attachmentPaths && attachmentPaths.length) {
-    message += `Content-Type: multipart/mixed; boundary="${boundary}"\r\n\r\n`
+    message += `Content-Type: multipart/mixed boundary="${boundary}"\r\n\r\n`
     message += `--${boundary}\r\n`
-    message += `Content-Type: text/plain; charset="utf-8"\r\n`
+    message += `Content-Type: text/plain charset="utf-8"\r\n`
     message += `Content-Transfer-Encoding: 7bit\r\n\r\n`
     message += `${text}\r\n\r\n`
 
@@ -124,15 +129,15 @@ function buildRawMessage({ sender, recipient, subject, text, attachmentPaths }) 
       console.log(`MIME type for ${filename}: ${mimeType}`)
 
       message += `--${boundary}\r\n`
-      message += `Content-Type: ${mimeType}; name="${filename}"\r\n`
-      message += `Content-Disposition: attachment; filename="${filename}"\r\n`
+      message += `Content-Type: ${mimeType} name="${filename}"\r\n`
+      message += `Content-Disposition: attachment filename="${filename}"\r\n`
       message += `Content-Transfer-Encoding: base64\r\n\r\n`
       message += `${content}\r\n\r\n`
     })
 
     message += `--${boundary}--\r\n`
   } else {
-    message += `Content-Type: text/plain; charset="utf-8"\r\n`
+    message += `Content-Type: text/plain charset="utf-8"\r\n`
     message += `Content-Transfer-Encoding: 7bit\r\n\r\n`
     message += `${text}\r\n`
   }
