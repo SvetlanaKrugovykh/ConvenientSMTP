@@ -28,15 +28,23 @@ function handleOnData(stream, session, callback) {
   logger.info('Remote IP:', session.remoteAddress)
 
   if (session.remoteAddress === configData.server) {
-    logger.info('Handling as relayReceiveLocal (local incoming mail)')
-    relayReceiveLocal(stream, session, callback, configData)
-  } else if (recipients.some((recipient) => configData.forwardingRules.validRecipients.includes(recipient))) {
+    if (recipients.some((recipient) => !configData.forwardingRules.validRecipients.includes(recipient))) {
+      logger.info('Handling as relaySend (outgoing mail from local server)')
+      relaySend(stream, session, callback, configData)
+    } else {
+      logger.info('Handling as relayReceiveLocal (local incoming mail)')
+      relayReceiveLocal(stream, session, callback, configData)
+    }
+  }
+  else if (recipients.some((recipient) => configData.forwardingRules.validRecipients.includes(recipient))) {
     logger.info('Handling as relayReceiveExternal (external incoming mail)')
     relayReceiveExternal(stream, session, callback, configData)
-  } else if (configData.forwardingRules.validRecipients.includes(sender)) {
+  }
+  else if (configData.forwardingRules.validRecipients.includes(sender)) {
     logger.info('Handling as relaySend (outgoing mail)')
     relaySend(stream, session, callback, configData)
-  } else {
+  }
+  else {
     logger.warn('Neither sender nor recipients match validRecipients. Rejecting.')
     return callback(new Error('Unauthorized relay attempt'))
   }
