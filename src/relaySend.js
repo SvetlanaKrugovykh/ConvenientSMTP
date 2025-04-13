@@ -6,9 +6,9 @@ const simpleParser = require('mailparser').simpleParser
 
 module.exports.relaySend = async function (stream, session, callback, configData) {
   const sender = session.envelope.mailFrom.address.trim()
-  const recipient = session.envelope.rcptTo[0].address.trim()
+  const recipients = session.envelope.rcptTo.map((rcpt) => rcpt.address.trim())
 
-  logger.info(`relaySend called for sender: ${sender}, recipient: ${recipient}`)
+  logger.info(`relaySend called for sender: ${sender}, recipients: ${recipients.join(', ')}`)
 
   try {
     const emailContent = await parseStream(stream)
@@ -16,47 +16,54 @@ module.exports.relaySend = async function (stream, session, callback, configData
     const { subject, text, attachments } = emailContent
     const attachmentPaths = saveAttachments(attachments)
 
-    const domain = recipient.split('@')[1]
-    logger.info(`Resolving MX for domain: ${domain}`)
+    for (const recipient of recipients) {
+      const domain = recipient.split('@')[1]
+      logger.info(`Resolving MX for domain: ${domain}`)
 
-    let mxRecords
-    try {
-      mxRecords = await dns.resolveMx(domain)
-    } catch (err) {
-      logger.error('Failed to resolve MX:', err)
-      return callback(new Error('Failed to resolve MX records'))
+      let mxRecords
+      try {
+        mxRecords = await dns.resolveMx(domain)
+      } catch (err) {
+        logger.error(`Failed to resolve MX for ${domain}:`, err)
+        continue
+      }
+
+      mxRecords.sort((a, b) => a.priority - b.priority)
+      const targetMX = mxRecords[0].exchange
+
+      logger.info(`Using MX server: ${targetMX} for recipient: ${recipient}`)
+
+      const connection = new SMTPConnection({
+        host: targetMX,
+        port: 25,
+        tls: { rejectUnauthorized: false },
+      })
+
+      try {
+        await new Promise((resolve, reject) => {
+          connection.connect(() => {
+            logger.info(`Connected to target MX for recipient: ${recipient}`)
+            resolve()
+          })
+          connection.on('error', reject)
+        })
+
+        const envelope = { from: sender, to: recipient }
+
+        await new Promise((resolve, reject) => {
+          connection.send(envelope, buildRawMessage({ sender, recipient, subject, text, attachmentPaths }), (err, info) => {
+            if (err) return reject(err)
+            logger.info(`Mail sent to ${recipient}:`, info)
+            resolve(info)
+          })
+        })
+
+        connection.quit()
+      } catch (err) {
+        logger.error(`Error sending mail to ${recipient}:`, err)
+      }
     }
 
-    mxRecords.sort((a, b) => a.priority - b.priority)
-    const targetMX = mxRecords[0].exchange
-
-    logger.info(`Using MX server: ${targetMX}`)
-
-    const connection = new SMTPConnection({
-      host: targetMX,
-      port: 25,
-      tls: { rejectUnauthorized: false },
-    })
-
-    await new Promise((resolve, reject) => {
-      connection.connect(() => {
-        logger.info('Connected to target MX')
-        resolve()
-      })
-      connection.on('error', reject)
-    })
-
-    const envelope = { from: sender, to: recipient }
-
-    await new Promise((resolve, reject) => {
-      connection.send(envelope, buildRawMessage({ sender, recipient, subject, text, attachmentPaths }), (err, info) => {
-        if (err) return reject(err)
-        logger.info('Mail sent:', info)
-        resolve(info)
-      })
-    })
-
-    connection.quit()
     callback()
   } catch (error) {
     logger.error('Error in relaySend:', error)
