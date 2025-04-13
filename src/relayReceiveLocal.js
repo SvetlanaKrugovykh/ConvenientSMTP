@@ -1,0 +1,50 @@
+const logger = require('./logger')
+const simpleParser = require('mailparser').simpleParser
+const { processEmail } = require('./processEmail')
+
+module.exports.relayReceiveLocal = async function (stream, session, callback, configData) {
+  const recipients = session.envelope.rcptTo.map((rcpt) => rcpt.address.trim())
+  const sender = session.envelope.mailFrom.address.trim()
+  let emailBody = ''
+
+  logger.info('relayReceiveLocal called for local incoming mail')
+  logger.info('Checking recipients:', recipients.join(', '))
+  logger.info('Checking sender:', sender)
+
+  if (!recipients.some((recipient) => configData.forwardingRules.validRecipients.map((e) => e.trim()).includes(recipient))) {
+    logger.info('No valid recipients found')
+    return callback(new Error('No valid recipients found'))
+  }
+
+  if (configData.forwardingRules.blacklist.map((e) => e.trim()).includes(sender)) {
+    logger.info('Sender is blacklisted')
+    return callback(new Error('Sender is blacklisted'))
+  }
+
+  stream.on('data', (chunk) => {
+    emailBody += chunk.toString()
+  })
+
+  stream.pipe(process.stdout)
+
+  stream.on('end', async () => {
+    logger.info(`Received email from ${sender} to ${recipients.join(', ')}`)
+
+    try {
+      const parsed = await simpleParser(emailBody)
+      const subject = parsed.subject || 'No Subject'
+      const text = parsed.html || parsed.text
+      const attachments = parsed.attachments || []
+
+      logger.info('Email received and parsed. Attachments:', attachments.map((a) => a.filename))
+
+      await processEmail(recipients, sender, subject, text, attachments, configData)
+
+      logger.info('Email processed successfully for all recipients')
+    } catch (error) {
+      logger.error('Error processing email:', error)
+    }
+
+    callback()
+  })
+}

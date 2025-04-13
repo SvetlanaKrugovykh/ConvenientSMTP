@@ -2,7 +2,7 @@ const nodemailer = require('nodemailer')
 const config = require('./config')
 const { PassThrough } = require('stream')
 const logger = require('./logger')
-const { relay } = require('./relayReceive')
+const { relay } = require('./relayReceiveLocal')
 require('dotenv').config()
 
 module.exports.sendEMail = async function (from, to, subject, text, user, pass) {

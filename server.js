@@ -3,7 +3,8 @@ const configData = require('./src/config')
 const logger = require('./src/logger')
 const path = require('path')
 const auth = require('./src/auth')
-const { relay: relayReceive } = require('./src/relayReceive')
+const { relayReceiveLocal } = require('./src/relayReceiveLocal')
+const { relayReceiveExternal } = require('./src/relayReceiveExternal')
 const { relaySend } = require('./src/relaySend')
 const { checkBlacklists, checkSPF, checkPTR } = require('./src/security')
 require('dotenv').config()
@@ -24,13 +25,16 @@ function handleOnData(stream, session, callback) {
   const recipients = session.envelope.rcptTo.map((rcpt) => rcpt.address.toLowerCase())
   logger.info('Sender:', sender)
   logger.info('Recipients:', recipients.join(', '))
+  logger.info('Remote IP:', session.remoteAddress)
 
-  if (recipients.some((recipient) => configData.forwardingRules.validRecipients.includes(recipient))) {
-    logger.info('Handling as relayReceive (incoming mail)')
-    relayReceive(stream, session, callback, configData, this)
+  if (session.remoteAddress === configData.server) {
+    logger.info('Handling as relayReceiveLocal (local incoming mail)')
+    relayReceiveLocal(stream, session, callback, configData)
+  } else if (recipients.some((recipient) => configData.forwardingRules.validRecipients.includes(recipient))) {
+    logger.info('Handling as relayReceiveExternal (external incoming mail)')
+    relayReceiveExternal(stream, session, callback, configData)
   } else if (configData.forwardingRules.validRecipients.includes(sender)) {
     logger.info('Handling as relaySend (outgoing mail)')
-    console.log('relaySend:', relaySend)
     relaySend(stream, session, callback, configData)
   } else {
     logger.warn('Neither sender nor recipients match validRecipients. Rejecting.')
