@@ -73,6 +73,11 @@ function handleOnAuth(authData, session, callback) {
 async function handleOnConnect(session, callback) {
   logger.info(`Incoming connection from ${session.remoteAddress}`)
 
+  if (configData.forwardingRules.allowedRelayIPs.includes(session.remoteAddress)) {
+    logger.info(`Allowed relay IP: ${session.remoteAddress}`)
+    return callback(null, 250, 'OK')
+  }
+
   try {
     const blacklisted = await checkBlacklists(session.remoteAddress)
     if (blacklisted) {
