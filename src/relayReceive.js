@@ -11,16 +11,16 @@ const { forwardEmail } = require('./forwardEmail')
 require('dotenv').config()
 
 module.exports.relay = function (stream, session, callback, server) {
-  const recipient = session.envelope.rcptTo[0].address.trim()
+  const recipients = session.envelope.rcptTo.map((rcpt) => rcpt.address.trim())
   const sender = session.envelope.mailFrom.address.trim()
   let emailBody = ''
 
-  logger.info('Checking recipient:', recipient)
+  logger.info('Checking recipients:', recipients.join(', '))
   logger.info('Checking sender:', sender)
 
-  if (!configData.forwardingRules.validRecipients.map((e) => e.trim()).includes(recipient)) {
-    logger.info('Recipient is not allowed')
-    return callback(new Error('Recipient is not allowed'))
+  if (!recipients.some((recipient) => configData.forwardingRules.validRecipients.map((e) => e.trim()).includes(recipient))) {
+    logger.info('No valid recipients found')
+    return callback(new Error('No valid recipients found'))
   }
 
   if (configData.forwardingRules.blacklist.map((e) => e.trim()).includes(sender)) {
@@ -35,9 +35,7 @@ module.exports.relay = function (stream, session, callback, server) {
   stream.pipe(process.stdout)
 
   stream.on('end', async () => {
-    const to = session.envelope.rcptTo[0].address
-    const from = session.envelope.mailFrom.address
-    logger.info(`Received email from ${from} to ${to}`)
+    logger.info(`Received email from ${sender} to ${recipients.join(', ')}`)
 
     try {
       const parsed = await simpleParser(emailBody)
@@ -45,7 +43,7 @@ module.exports.relay = function (stream, session, callback, server) {
       const text = parsed.html || parsed.text
       const attachments = parsed.attachments || []
       const attachmentPaths = []
-      const forwardArray = configData.forwardingRules.forwardRules[recipient]
+
       for (const attachment of attachments) {
         const attachmentDir = path.isAbsolute(process.env.ATTACHMENT_PATH)
           ? process.env.ATTACHMENT_PATH
@@ -59,21 +57,25 @@ module.exports.relay = function (stream, session, callback, server) {
       }
 
       logger.info('Email received and parsed. Attachments:', attachments.map((a) => a.filename))
-      await saveEmail(to, from, subject, text, attachmentPaths)
-      await reSendToTheTelegram(to, from, subject, text, attachmentPaths, forwardArray)
 
-      if (process.env.DO_FORWARD === 'true' && forwardArray) {
-        const letterData = {
-          to,
-          from,
-          subject,
-          text,
-          attachmentPaths,
+      for (const recipient of recipients) {
+        const forwardArray = configData.forwardingRules.forwardRules[recipient]
+        await saveEmail(recipient, sender, subject, text, attachmentPaths)
+        await reSendToTheTelegram(recipient, sender, subject, text, attachmentPaths, forwardArray)
+
+        if (process.env.DO_FORWARD === 'true' && forwardArray) {
+          const letterData = {
+            to: recipient,
+            from: sender,
+            subject,
+            text,
+            attachmentPaths,
+          }
+          forwardEmail(recipient, configData, letterData)
         }
-        forwardEmail(recipient, configData, letterData)
       }
 
-      logger.info('Email saved to database')
+      logger.info('Email saved to database for all recipients')
     } catch (error) {
       logger.error('Error saving email:', error)
     }

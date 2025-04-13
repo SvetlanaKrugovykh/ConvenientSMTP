@@ -15,29 +15,25 @@ try {
   logger.info(err)
 }
 
-logger.info('Allowed relay IPs:', configData.forwardingRules.allowedRelayIPs)
-logger.info('Blacklist:', configData.forwardingRules.blacklist)
 logger.info('Valid recipients:', configData.forwardingRules.validRecipients)
-
 
 function handleOnData(stream, session, callback) {
   logger.info('onData called')
 
   const sender = session.envelope.mailFrom.address.toLowerCase()
-  const recipient = session.envelope.rcptTo[0].address.toLowerCase()
+  const recipients = session.envelope.rcptTo.map((rcpt) => rcpt.address.toLowerCase())
   logger.info('Sender:', sender)
-  logger.info('Recipient:', recipient)
+  logger.info('Recipients:', recipients.join(', '))
 
-  if (configData.forwardingRules.validRecipients.includes(recipient)) {
+  if (recipients.some((recipient) => configData.forwardingRules.validRecipients.includes(recipient))) {
     logger.info('Handling as relayReceive (incoming mail)')
     relayReceive(stream, session, callback, configData, this)
-  }
-  else if (configData.forwardingRules.validRecipients.includes(sender)) {
+  } else if (configData.forwardingRules.validRecipients.includes(sender)) {
     logger.info('Handling as relaySend (outgoing mail)')
     console.log('relaySend:', relaySend)
     relaySend(stream, session, callback, configData)
   } else {
-    logger.warn('Neither sender nor recipient matches validRecipients. Rejecting.')
+    logger.warn('Neither sender nor recipients match validRecipients. Rejecting.')
     return callback(new Error('Unauthorized relay attempt'))
   }
 
