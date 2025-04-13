@@ -55,8 +55,20 @@ function handleOnData(stream, session, callback) {
 function handleOnAuth(authData, session, callback) {
   logger.info('onAuth called')
   logger.info('Auth data:', authData)
+
+  const recipients = session.envelope.rcptTo?.map((rcpt) => rcpt.address.toLowerCase()) || []
+
+  // 👇 Если явно сказано, что auth не нужен (например, внешний сервер)
+  if (session.authNotRequired && recipients.some((recipient) =>
+    configData.forwardingRules.validRecipients.includes(recipient))) {
+    logger.info('Authentication skipped for valid recipient from external server')
+    return callback(null, { user: 'anonymous' })
+  }
+
+  // в остальных случаях — обычная проверка
   auth(authData, session, callback)
 }
+
 
 async function handleOnConnect(session, callback) {
   logger.info(`Incoming connection from ${session.remoteAddress}`)
@@ -74,6 +86,7 @@ async function handleOnConnect(session, callback) {
       return callback(new Error('PTR record check failed'))
     }
 
+    if (isIncomingMail(session)) session.authNotRequired = true
   } catch (err) {
     logger.error(`DNS check failed: ${err.message}`)
     return callback(new Error('Temporary error, try later'))
@@ -82,9 +95,22 @@ async function handleOnConnect(session, callback) {
   callback()
 }
 
+
+function isIncomingMail(session) {
+  return true //TODO
+}
+
+
 async function handleOnMailFrom(address, session, callback) {
+  logger.info('handleOnMailFrom called')
   logger.info(`Mail from: ${address.address} | IP: ${session.remoteAddress}`)
-  logger.info(`Client IP: ${session.remoteAddress}`)
+  logger.info(`Session envelope:`, session.envelope)
+
+  const recipients = session.envelope.rcptTo?.map((rcpt) => rcpt.address.toLowerCase()) || []
+  if (recipients.some((recipient) => configData.forwardingRules.validRecipients.includes(recipient))) {
+    logger.info('Skipping authentication for external incoming mail')
+    return callback()
+  }
 
   if (configData.forwardingRules.allowedRelayIPs.includes(session.remoteAddress)) {
     logger.info(`SPF check skipped for allowed IP: ${session.remoteAddress}`)
@@ -107,6 +133,7 @@ const server = new SMTPServer({
   onMailFrom: handleOnMailFrom,
   logger: true,
   disabledCommands: ['STARTTLS'],
+  authOptional: true,
 })
 
 module.exports.server = server
