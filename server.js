@@ -20,42 +20,46 @@ logger.info('Valid recipients:', configData.forwardingRules.validRecipients)
 
 function handleOnData(stream, session, callback) {
   logger.info('onData called')
+  try {
+    const sender = session.envelope.mailFrom.address.toLowerCase()
+    const recipients = session.envelope.rcptTo.map((rcpt) => rcpt.address.toLowerCase())
+    const remoteIP = session.remoteAddress
 
-  const sender = session.envelope.mailFrom.address.toLowerCase()
-  const recipients = session.envelope.rcptTo.map((rcpt) => rcpt.address.toLowerCase())
-  const remoteIP = session.remoteAddress
+    logger.info('Sender:', sender)
+    logger.info('Recipients:', recipients.join(', '))
+    logger.info('Remote IP:', remoteIP)
 
-  logger.info('Sender:', sender)
-  logger.info('Recipients:', recipients.join(', '))
-  logger.info('Remote IP:', remoteIP)
+    const isValidRecipient = (addr) => configData.forwardingRules.validRecipients.includes(addr)
+    const isAllowedRelayIP = configData.forwardingRules.allowedRelayIPs.includes(remoteIP)
 
-  const isValidRecipient = (addr) => configData.forwardingRules.validRecipients.includes(addr)
-  const isAllowedRelayIP = configData.forwardingRules.allowedRelayIPs.includes(remoteIP)
-
-  if (remoteIP === configData.server) {
-    if (
-      recipients.some((recipient) => !isValidRecipient(recipient))
+    if (remoteIP === configData.server) {
+      if (
+        recipients.some((recipient) => !isValidRecipient(recipient))
+      ) {
+        logger.info('Handling as relaySend (outgoing mail from local server or allowed IP)')
+        relaySend(stream, session, callback, configData)
+      } else {
+        logger.info('Handling as relayReceiveLocal (local incoming mail)')
+        relayReceiveLocal(stream, session, callback, configData)
+      }
+    } else if (recipients.some(isValidRecipient)) {
+      logger.info('Handling as relayReceiveExternal (external incoming mail)')
+      relayReceiveExternal(stream, session, callback, configData)
+    } else if (
+      isValidRecipient(sender) || isAllowedRelayIP
     ) {
-      logger.info('Handling as relaySend (outgoing mail from local server or allowed IP)')
+      logger.info('Handling as relaySend (outgoing mail from allowed external IP)')
       relaySend(stream, session, callback, configData)
     } else {
-      logger.info('Handling as relayReceiveLocal (local incoming mail)')
-      relayReceiveLocal(stream, session, callback, configData)
+      logger.warn('Neither sender nor recipients match validRecipients. Rejecting.')
+      return callback(new Error('Unauthorized relay attempt'))
     }
-  } else if (recipients.some(isValidRecipient)) {
-    logger.info('Handling as relayReceiveExternal (external incoming mail)')
-    relayReceiveExternal(stream, session, callback, configData)
-  } else if (
-    isValidRecipient(sender) || isAllowedRelayIP
-  ) {
-    logger.info('Handling as relaySend (outgoing mail from allowed external IP)')
-    relaySend(stream, session, callback, configData)
-  } else {
-    logger.warn('Neither sender nor recipients match validRecipients. Rejecting.')
-    return callback(new Error('Unauthorized relay attempt'))
-  }
 
-  stream.on('end', () => callback())
+    stream.on('end', () => callback())
+  } catch (err) {
+    logger.error('Error in handleOnData:', err)
+    callback(err)
+  }
 }
 
 function handleOnAuth(authData, session, callback) {
@@ -140,6 +144,7 @@ const server = new SMTPServer({
   logger: true,
   disabledCommands: ['STARTTLS'],
   authOptional: true,
+  socketTimeout: 60000,
 })
 
 module.exports.server = server
@@ -152,5 +157,10 @@ module.exports.startServer = function () {
 
   server.on('error', (err) => {
     logger.error('Server ERROR: ' + err.message)
+  })
+
+  server.on('clientError', (err, socket) => {
+    logger.warn('Client ERROR: ' + err.message)
+    socket.end('400 Bad Request\r\n')
   })
 }
