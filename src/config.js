@@ -2,6 +2,12 @@ const fs = require('fs')
 const path = require('path')
 require('dotenv').config()
 
+const antispamList = fs
+  .readFileSync(path.join(__dirname, '../config', 'antispam.txt'), 'utf-8')
+  .split('\n')
+  .map((entry) => entry.trim().toLowerCase())
+  .filter(Boolean)
+
 const blacklist = fs
   .readFileSync(path.join(__dirname, '../config', 'blacklist.txt'), 'utf-8')
   .split('\n')
@@ -38,7 +44,8 @@ const forwardingRules = {
   allowedRelayIPs,
   validRecipients,
   forwardRules,
-  rcptToTg
+  rcptToTg,
+  antispamList
 }
 
 module.exports = {

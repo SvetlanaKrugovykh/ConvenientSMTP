@@ -11,6 +11,15 @@ module.exports.relayReceiveExternal = async function (stream, session, callback,
   logger.info('Checking recipients:', recipients.join(', '))
   logger.info('Checking sender:', sender)
 
+  const isSpam = configData.forwardingRules.antispamList.some((entry) => {
+    return sender === entry || sender.endsWith(entry)
+  })
+
+  if (isSpam) {
+    logger.warn(`Blocked spam email from ${sender}`);
+    return callback(new Error('Your email was identified as spam and rejected.'))
+  }
+
   if (!recipients.some((recipient) => configData.forwardingRules.validRecipients.map((e) => e.trim()).includes(recipient))) {
     logger.info('No valid recipients found for external email')
     return callback(new Error('No valid recipients found'))

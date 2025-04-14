@@ -58,8 +58,6 @@ function handleOnData(stream, session, callback) {
   stream.on('end', () => callback())
 }
 
-
-
 function handleOnAuth(authData, session, callback) {
   logger.info('onAuth called')
   logger.info('Auth data:', authData)
@@ -80,11 +78,6 @@ function handleOnAuth(authData, session, callback) {
 
 async function handleOnConnect(session, callback) {
   logger.info(`Incoming connection from ${session.remoteAddress}`)
-
-  if (configData.forwardingRules.allowedRelayIPs.includes(session.remoteAddress)) {
-    logger.info(`Allowed relay IP: ${session.remoteAddress}`)
-    return callback(null, 250, 'OK')
-  }
 
   try {
     const blacklisted = await checkBlacklists(session.remoteAddress)
@@ -130,11 +123,11 @@ async function handleOnMailFrom(address, session, callback) {
     return callback()
   }
 
-  const spfValid = await checkSPF(address.address, session.remoteAddress)
-  if (!spfValid) {
-    logger.warn(`SPF check failed for ${address.address}`)
-    return callback(new Error('SPF check failed'))
-  }
+  // const spfValid = await checkSPF(address.address, session.remoteAddress)
+  // if (!spfValid) {
+  //   logger.warn(`SPF check failed for ${address.address}`)
+  //   return callback(new Error('SPF check failed'))
+  // }
 
   callback()
 }
