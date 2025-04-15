@@ -8,18 +8,21 @@ require('dotenv').config()
 
 
 module.exports.relaySend = async function (stream, session, callback, configData) {
+
   const sender = session.envelope.mailFrom.address.trim().toLowerCase()
   const recipients = session.envelope.rcptTo.map((rcpt) => rcpt.address.trim().toLowerCase())
 
   logger.info(`relaySend called for sender: ${sender}, recipients: ${recipients.join(', ')}`)
 
   const senderDomain = sender.split('@')[1]
-  if (!configData.ownDomains.includes(senderDomain)) {
-    logger.warn(`Rejected email from sender: ${sender}. Domain ${senderDomain} is not in ownDomains.`)
-    return callback(new Error(`Sender domain ${senderDomain} is not allowed.`))
-  }
 
   try {
+    logger.info('relaySend called with configData:', configData)  //TODO
+    if (!configData.ownDomains.includes(senderDomain)) {
+      logger.warn(`Rejected email from sender: ${sender}. Domain ${senderDomain} is not in ownDomains.`)
+      return callback(new Error(`Sender domain ${senderDomain} is not allowed.`))
+    }
+
     const emailContent = await parseStream(stream)
 
     const { subject, text, attachments } = emailContent
