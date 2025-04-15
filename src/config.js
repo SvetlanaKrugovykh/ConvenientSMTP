@@ -20,6 +20,12 @@ const allowedRelayIPs = fs
   .map(ip => ip.trim())
   .filter(Boolean)
 
+const ownDomains = fs
+  .readFileSync(path.join(__dirname, '../config', 'own_domains'), 'utf-8')
+  .split('\n')
+  .map(domain => domain.trim())
+  .filter(Boolean)
+
 const validRecipients = fs
   .readFileSync(path.join(__dirname, '../config', 'rcpt_to.in_host_list'), 'utf-8')
   .split('\n')
@@ -40,6 +46,7 @@ const rcptToTg = fs
   }, {})
 
 const forwardingRules = {
+  ownDomains,
   blacklist,
   allowedRelayIPs,
   validRecipients,

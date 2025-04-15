@@ -13,6 +13,12 @@ module.exports.relaySend = async function (stream, session, callback, configData
 
   logger.info(`relaySend called for sender: ${sender}, recipients: ${recipients.join(', ')}`)
 
+  const senderDomain = sender.split('@')[1]
+  if (!configData.ownDomains.includes(senderDomain)) {
+    logger.warn(`Rejected email from sender: ${sender}. Domain ${senderDomain} is not in ownDomains.`)
+    return callback(new Error(`Sender domain ${senderDomain} is not allowed.`))
+  }
+
   try {
     const emailContent = await parseStream(stream)
 
