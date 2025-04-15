@@ -19,7 +19,6 @@ module.exports.relaySend = async function (stream, session, callback) {
   const senderDomain = sender.split('@')[1]
 
   try {
-    logger.info('relaySend called with configData:', configData.forwardingRules)  //TODO
     if (!configData.forwardingRules.ownDomains.includes(senderDomain)) {
       logger.warn(`Rejected email from sender: ${sender}. Domain ${senderDomain} is not in ownDomains.`)
       return callback(new Error(`Sender domain ${senderDomain} is not allowed.`))
