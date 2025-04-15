@@ -37,7 +37,7 @@ function handleOnData(stream, session, callback) {
         recipients.some((recipient) => !isValidRecipient(recipient))
       ) {
         logger.info('Handling as relaySend (outgoing mail from local server or allowed IP)')
-        relaySend(stream, session, callback, configData)
+        relaySend(stream, session, callback)
       } else {
         logger.info('Handling as relayReceiveLocal (local incoming mail)')
         relayReceiveLocal(stream, session, callback, configData)

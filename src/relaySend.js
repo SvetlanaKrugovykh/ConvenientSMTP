@@ -3,11 +3,13 @@ const SMTPConnection = require('smtp-connection')
 const fs = require('fs')
 const path = require('path')
 const logger = require('./logger')
+const configData = require('./config')
+
 const simpleParser = require('mailparser').simpleParser
 require('dotenv').config()
 
 
-module.exports.relaySend = async function (stream, session, callback, configData) {
+module.exports.relaySend = async function (stream, session, callback) {
 
   const sender = session.envelope.mailFrom.address.trim().toLowerCase()
   const recipients = session.envelope.rcptTo.map((rcpt) => rcpt.address.trim().toLowerCase())
@@ -17,8 +19,8 @@ module.exports.relaySend = async function (stream, session, callback, configData
   const senderDomain = sender.split('@')[1]
 
   try {
-    logger.info('relaySend called with configData:', configData)  //TODO
-    if (!configData.ownDomains.includes(senderDomain)) {
+    logger.info('relaySend called with configData:', configData.forwardingRules)  //TODO
+    if (!configData.forwardingRules.ownDomains.includes(senderDomain)) {
       logger.warn(`Rejected email from sender: ${sender}. Domain ${senderDomain} is not in ownDomains.`)
       return callback(new Error(`Sender domain ${senderDomain} is not allowed.`))
     }
