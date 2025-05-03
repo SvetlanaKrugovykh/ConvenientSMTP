@@ -6,7 +6,7 @@ const { saveEmail } = require('../db/saveEmail')
 const { reSendToTheTelegram } = require('./reSendToTheTg')
 const { forwardEmail } = require('./forwardEmail')
 
-module.exports.processEmail = async function (recipients, sender, subject, text, attachments, configData) {
+module.exports.processEmail = async function (recipients, sender, subject, text, attachments, configData, metadata) {
   const attachmentPaths = []
 
   for (const attachment of attachments) {
@@ -25,8 +25,21 @@ module.exports.processEmail = async function (recipients, sender, subject, text,
 
   for (const recipient of recipients) {
     const forwardArray = configData.forwardingRules.forwardRules[recipient]
-    await saveEmail(recipient, sender, subject, text, attachmentPaths)
-    await reSendToTheTelegram(recipient, sender, subject, text, attachmentPaths, forwardArray)
+
+    await saveEmail(
+      recipient,
+      sender,
+      subject,
+      text,
+      attachmentPaths,
+      {
+        messageId: metadata.messageId,
+        inReplyTo: metadata.inReplyTo,
+        references: metadata.references,
+      }
+    )
+
+    await reSendToTheTelegram(recipient, sender, subject, text, attachmentPaths, forwardArray, metadata)
 
     if (process.env.DO_FORWARD === 'true' && forwardArray) {
       const letterData = {

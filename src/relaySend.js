@@ -112,7 +112,7 @@ function saveAttachments(attachments) {
   return attachmentPaths
 }
 
-function buildRawMessage({ sender, recipient, subject, text, attachmentPaths }) {
+function buildRawMessage({ sender, recipient, subject, text, attachmentPaths, inReplyTo = null, references = null }) {
   let message = ''
   const boundary = '----=_NodeMailerBoundary'
 
@@ -124,6 +124,13 @@ function buildRawMessage({ sender, recipient, subject, text, attachmentPaths }) 
   message += `Subject: ${subject}\r\n`
   message += `Message-ID: ${messageId}\r\n`
   message += `MIME-Version: 1.0\r\n`
+
+  if (inReplyTo) {
+    message += `In-Reply-To: ${inReplyTo}\r\n`
+  }
+  if (references) {
+    message += `References: ${references.join(' ')}\r\n`
+  }
 
   if (attachmentPaths && attachmentPaths.length) {
     message += `Content-Type: multipart/mixed; boundary="${boundary}"\r\n\r\n`

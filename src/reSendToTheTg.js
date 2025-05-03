@@ -5,7 +5,7 @@ const FormData = require('form-data')
 const logger = require('../src/logger')
 require('dotenv').config()
 
-module.exports.reSendToTheTelegram = async function (to, from, subject, text, attachmentPaths, forwardArray) {
+module.exports.reSendToTheTelegram = async function (to, from, subject, text, attachmentPaths, forwardArray, metadata) {
   try {
     const recipients = [...(forwardArray || []), to]
 
@@ -14,7 +14,11 @@ module.exports.reSendToTheTelegram = async function (to, from, subject, text, at
         const tgIds = configData.forwardingRules.rcptToTg[recipient]?.split(',').map(id => id.trim())
         if (tgIds && tgIds.length > 0) {
           for (const tgId of tgIds) {
-            const tgMessage = `Received email from ${from} to ${recipient}\nSubject: ${subject}\n\n${text}`
+            const tgMessage = `Received email from ${from} to ${recipient}\nSubject: ${subject}\n\n${text}\n\n` +
+              `Message-ID: ${metadata.messageId || 'N/A'}\n` +
+              `In-Reply-To: ${metadata.inReplyTo || 'N/A'}\n` +
+              `References: ${metadata.references ? metadata.references.join(', ') : 'N/A'}`
+
             await axios.post(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
               chat_id: tgId,
               text: tgMessage,

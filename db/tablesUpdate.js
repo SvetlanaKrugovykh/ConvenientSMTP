@@ -29,7 +29,10 @@ const tableQueries = {
     subject TEXT,
     body TEXT,
     received_at TIMESTAMP DEFAULT now(),
-    folder VARCHAR(50) DEFAULT 'inbox'
+    folder VARCHAR(50) DEFAULT 'inbox',
+    message_id VARCHAR(255),
+    in_reply_to VARCHAR(255),
+    references TEXT
     )`,
   'attachments': `
     CREATE TABLE attachments (
