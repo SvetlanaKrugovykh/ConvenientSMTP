@@ -68,14 +68,12 @@ function handleOnAuth(authData, session, callback) {
 
   const recipients = session.envelope.rcptTo?.map((rcpt) => rcpt.address.toLowerCase()) || []
 
-  // 👇 Если явно сказано, что auth не нужен (например, внешний сервер)
   if (session.authNotRequired && recipients.some((recipient) =>
     configData.forwardingRules.validRecipients.includes(recipient))) {
     logger.info('Authentication skipped for valid recipient from external server')
     return callback(null, { user: 'anonymous' })
   }
 
-  // в остальных случаях — обычная проверка
   auth(authData, session, callback)
 }
 
@@ -145,6 +143,7 @@ const server = new SMTPServer({
   disabledCommands: ['STARTTLS'],
   authOptional: true,
   socketTimeout: 60000,
+  name: process.env.SMTP_SERVER_NAME,
 })
 
 module.exports.server = server
