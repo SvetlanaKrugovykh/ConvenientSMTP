@@ -80,6 +80,8 @@ function handleOnAuth(authData, session, callback) {
 async function handleOnConnect(session, callback) {
   logger.info(`Incoming connection from ${session.remoteAddress}`)
 
+  session.hostNameAppearsAs = serverConfig.name
+
   try {
     const blacklisted = await checkBlacklists(session.remoteAddress)
     if (blacklisted) {
@@ -101,7 +103,6 @@ async function handleOnConnect(session, callback) {
 
   callback()
 }
-
 
 function isIncomingMail(session) {
   return true //TODO

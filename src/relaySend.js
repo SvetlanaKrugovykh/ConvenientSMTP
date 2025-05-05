@@ -119,14 +119,16 @@ function buildRawMessage({ sender, recipient, subject, text, attachmentPaths, in
   const messageId = `<${Date.now()}-${Math.random().toString(36).substring(2)}@${sender.split('@')[1]}>`
   console.log(`Generated Message-ID: ${messageId}`)
 
+  const encodedSubject = `=?UTF-8?B?${Buffer.from(subject).toString('base64')}?=`
+
   message += `From: ${sender}\r\n`
   message += `To: ${recipient}\r\n`
-  message += `Subject: ${subject}\r\n`
+  message += `Subject: ${encodedSubject}\r\n`
   message += `Message-ID: ${messageId}\r\n`
   message += `Date: ${new Date().toUTCString()}\r\n`
   message += `List-Unsubscribe: <mailto:unsubscribe@silver-service.com.ua>\r\n`
   message += `MIME-Version: 1.0\r\n`
-  message += `Content-Type: multipart/mixed; boundary="${boundary}"\r\n\r\n`
+  message += `Content-Type: multipart/mixed boundary="${boundary}"\r\n\r\n`
 
   if (inReplyTo) {
     message += `In-Reply-To: ${inReplyTo}\r\n`
@@ -135,32 +137,26 @@ function buildRawMessage({ sender, recipient, subject, text, attachmentPaths, in
     message += `References: ${references.join(' ')}\r\n`
   }
 
-  if (Array.isArray(attachmentPaths) && attachmentPaths.length > 0) {
-    message += `Content-Type: multipart/mixed; boundary="${boundary}"\r\n\r\n`
-    message += `--${boundary}\r\n`
-    message += `Content-Type: text/plain; charset="utf-8"\r\n`
-    message += `Content-Transfer-Encoding: 7bit\r\n\r\n`
-    message += `${text}\r\n\r\n`
+  message += `--${boundary}\r\n`
+  message += `Content-Type: text/plain; charset="utf-8"\r\n`
+  message += `Content-Transfer-Encoding: 7bit\r\n\r\n`
+  message += `${text}\r\n\r\n`
 
+  if (Array.isArray(attachmentPaths) && attachmentPaths.length > 0) {
     attachmentPaths.forEach((filePath) => {
       const filename = path.basename(filePath)
       const content = fs.readFileSync(filePath).toString('base64')
       const mimeType = getMimeType(filename)
-      console.log(`MIME type for ${filename}: ${mimeType}`)
 
-      message += `--${boundary}\r\n`;
+      message += `--${boundary}\r\n`
       message += `Content-Type: ${mimeType}; name="${filename}"\r\n`
       message += `Content-Disposition: attachment; filename="${filename}"\r\n`
       message += `Content-Transfer-Encoding: base64\r\n\r\n`
       message += `${content}\r\n\r\n`
     })
-
-    message += `--${boundary}--\r\n`
-  } else {
-    message += `Content-Type: text/plain; charset="utf-8"\r\n`
-    message += `Content-Transfer-Encoding: 7bit\r\n\r\n`
-    message += `${text}\r\n`
   }
+
+  message += `--${boundary}--\r\n`
 
   return message
 }
