@@ -123,7 +123,6 @@ function buildRawMessage({ sender, recipient, subject, text, attachmentPaths, in
 
   const encodedSubject = `=?UTF-8?B?${Buffer.from(subject).toString('base64')}?=`
 
-  // Общие заголовки
   message += `From: ${sender}\r\n`
   message += `To: ${recipient}\r\n`
   message += `Subject: ${encodedSubject}\r\n`
@@ -133,7 +132,7 @@ function buildRawMessage({ sender, recipient, subject, text, attachmentPaths, in
   message += `MIME-Version: 1.0\r\n`
 
   if (Array.isArray(attachmentPaths) && attachmentPaths.length > 0) {
-    message += `Content-Type: multipart/mixed boundary="${boundary}"\r\n\r\n`
+    message += `Content-Type: multipart/mixed; boundary="${boundary}"\r\n\r\n`
 
     message += `--${boundary}\r\n`
     message += `Content-Type: text/plain; charset="utf-8"\r\n`
@@ -149,7 +148,7 @@ function buildRawMessage({ sender, recipient, subject, text, attachmentPaths, in
       message += `Content-Type: ${mimeType}; name="${filename}"\r\n`
       message += `Content-Disposition: attachment; filename="${filename}"\r\n`
       message += `Content-Transfer-Encoding: base64\r\n\r\n`
-      message += `${content}\r\n\r\n`
+      message += `${content}\r\n`
     })
 
     message += `--${boundary}--\r\n`
