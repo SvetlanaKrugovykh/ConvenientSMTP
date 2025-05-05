@@ -9,7 +9,7 @@ const simpleParser = require('mailparser').simpleParser
 require('dotenv').config()
 
 
-module.exports.relaySend = async function (stream, session, callback) {
+module.exports.relaySend = async function (stream, session, callback, serverConfig) {
 
   const sender = session.envelope.mailFrom.address.trim().toLowerCase()
   const recipients = session.envelope.rcptTo.map((rcpt) => rcpt.address.trim().toLowerCase())

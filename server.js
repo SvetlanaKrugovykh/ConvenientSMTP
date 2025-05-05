@@ -15,6 +15,22 @@ try {
   logger.info(err)
 }
 
+function getServerConfig() {
+  const serverConfig = {
+    host: configData.server,
+    port: configData.port,
+    name: process.env.SMTP_SERVER_NAME,
+  }
+
+  logger.info(`Host: ${serverConfig.host}`)
+  logger.info(`Port: ${serverConfig.port}`)
+  logger.info(`SMTP Server Name: ${serverConfig.name}`)
+
+  return serverConfig
+}
+
+const serverConfig = getServerConfig()
+
 logger.info('Valid recipients:', configData.forwardingRules.validRecipients)
 
 function handleOnData(stream, session, callback) {
@@ -36,7 +52,7 @@ function handleOnData(stream, session, callback) {
         recipients.some((recipient) => !isValidRecipient(recipient))
       ) {
         logger.info('Handling as relaySend (outgoing mail from local server or allowed IP)')
-        relaySend(stream, session, callback)
+        relaySend(stream, session, callback, serverConfig)
       } else {
         logger.info('Handling as relayReceiveLocal (local incoming mail)')
         relayReceiveLocal(stream, session, callback, configData)
@@ -134,21 +150,6 @@ async function handleOnMailFrom(address, session, callback) {
   callback()
 }
 
-function getServerConfig() {
-  const serverConfig = {
-    host: configData.server,
-    port: configData.port,
-    name: process.env.SMTP_SERVER_NAME,
-  }
-
-  logger.info(`Host: ${serverConfig.host}`)
-  logger.info(`Port: ${serverConfig.port}`)
-  logger.info(`SMTP Server Name: ${serverConfig.name}`)
-
-  return serverConfig
-}
-
-const serverConfig = getServerConfig()
 
 const server = new SMTPServer({
   onData: handleOnData,
