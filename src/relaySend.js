@@ -50,12 +50,14 @@ module.exports.relaySend = async function (stream, session, callback) {
         host: targetMX,
         port: 25,
         tls: { rejectUnauthorized: false },
+        name: serverConfig.name,
       })
 
       try {
         await new Promise((resolve, reject) => {
           connection.connect(() => {
             logger.info(`Connected to target MX for recipient: ${recipient}`)
+            logger.info(`HELO/EHLO sent as: ${serverConfig.name}`)
             resolve()
           })
           connection.on('error', reject)
