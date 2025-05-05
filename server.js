@@ -1,7 +1,6 @@
 const { SMTPServer } = require('smtp-server')
 const configData = require('./src/config')
 const logger = require('./src/logger')
-const path = require('path')
 const auth = require('./src/auth')
 const { relayReceiveLocal } = require('./src/relayReceiveLocal')
 const { relayReceiveExternal } = require('./src/relayReceiveExternal')
@@ -134,6 +133,22 @@ async function handleOnMailFrom(address, session, callback) {
   callback()
 }
 
+function getServerConfig() {
+  const serverConfig = {
+    host: configData.server,
+    port: configData.port,
+    name: process.env.SMTP_SERVER_NAME,
+  }
+
+  logger.info(`Host: ${serverConfig.host}`)
+  logger.info(`Port: ${serverConfig.port}`)
+  logger.info(`SMTP Server Name: ${serverConfig.name}`)
+
+  return serverConfig
+}
+
+const serverConfig = getServerConfig()
+
 const server = new SMTPServer({
   onData: handleOnData,
   onAuth: handleOnAuth,
@@ -143,15 +158,18 @@ const server = new SMTPServer({
   disabledCommands: ['STARTTLS'],
   authOptional: true,
   socketTimeout: 60000,
-  name: process.env.SMTP_SERVER_NAME,
+  host: serverConfig.host,
+  port: serverConfig.port,
+  name: serverConfig.name,
+  // tls: { rejectUnauthorized: false },
 })
 
 module.exports.server = server
 
 module.exports.startServer = function () {
-  server.listen(configData.port, configData.server, () => {
-    console.log(`${configData.server}:${configData.port}`)
-    logger.info('SMTP server started on server ' + configData.server + ' and port ' + configData.port)
+  server.listen(serverConfig.port, serverConfig.host, () => {
+    console.log(`${serverConfig.host}:${serverConfig.port}`)
+    logger.info('SMTP server started on server ' + serverConfig.host + ' and port ' + serverConfig.port)
   })
 
   server.on('error', (err) => {

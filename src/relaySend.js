@@ -123,7 +123,10 @@ function buildRawMessage({ sender, recipient, subject, text, attachmentPaths, in
   message += `To: ${recipient}\r\n`
   message += `Subject: ${subject}\r\n`
   message += `Message-ID: ${messageId}\r\n`
+  message += `Date: ${new Date().toUTCString()}\r\n`
+  message += `List-Unsubscribe: <mailto:unsubscribe@silver-service.com.ua>\r\n`
   message += `MIME-Version: 1.0\r\n`
+  message += `Content-Type: multipart/mixed; boundary="${boundary}"\r\n\r\n`
 
   if (inReplyTo) {
     message += `In-Reply-To: ${inReplyTo}\r\n`
@@ -132,7 +135,7 @@ function buildRawMessage({ sender, recipient, subject, text, attachmentPaths, in
     message += `References: ${references.join(' ')}\r\n`
   }
 
-  if (attachmentPaths && attachmentPaths.length) {
+  if (Array.isArray(attachmentPaths) && attachmentPaths.length > 0) {
     message += `Content-Type: multipart/mixed; boundary="${boundary}"\r\n\r\n`
     message += `--${boundary}\r\n`
     message += `Content-Type: text/plain; charset="utf-8"\r\n`
@@ -150,7 +153,7 @@ function buildRawMessage({ sender, recipient, subject, text, attachmentPaths, in
       message += `Content-Disposition: attachment; filename="${filename}"\r\n`
       message += `Content-Transfer-Encoding: base64\r\n\r\n`
       message += `${content}\r\n\r\n`
-    });
+    })
 
     message += `--${boundary}--\r\n`
   } else {
