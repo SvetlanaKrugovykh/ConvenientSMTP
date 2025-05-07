@@ -7,6 +7,13 @@ const { reSendToTheTelegram } = require('./reSendToTheTg')
 const { forwardEmail } = require('./forwardEmail')
 
 module.exports.processEmail = async function (recipients, sender, subject, text, attachments, configData, metadata) {
+
+  if (!metadata.messageId) {
+    const messageId = `<${Date.now()}-${Math.random().toString(36).substring(2)}@${sender.split('@')[1]}>`
+    console.log(`Generated Message-ID: ${messageId}`)
+    metadata.messageId = messageId
+  }
+
   const attachmentPaths = []
 
   for (const attachment of attachments) {
