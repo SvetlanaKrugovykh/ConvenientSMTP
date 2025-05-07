@@ -35,7 +35,7 @@ module.exports.relayReceiveLocal = async function (stream, session, callback, co
       const attachments = parsed.attachments || []
       const messageId = parsed.messageId
       const inReplyTo = parsed.inReplyTo
-      const references = parsed.references || []
+      const references = Array.isArray(parsed.references) ? parsed.references : []
 
       logger.info('Email received and parsed. Attachments:', attachments.map((a) => a.filename))
       logger.info(`Message-ID: ${messageId}`)
