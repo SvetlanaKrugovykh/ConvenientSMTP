@@ -55,6 +55,7 @@ module.exports.processEmail = async function (recipients, sender, subject, text,
         subject,
         text,
         attachmentPaths,
+        messageId: metadata.messageId,
       }
       forwardEmail(recipient, configData, letterData)
     }
