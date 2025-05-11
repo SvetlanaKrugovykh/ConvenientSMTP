@@ -14,26 +14,38 @@ module.exports.reSendToTheTelegram = async function (to, from, subject, text, at
         const tgIds = configData.forwardingRules.rcptToTg[recipient]?.split(',').map(id => id.trim())
         if (tgIds && tgIds.length > 0) {
           for (const tgId of tgIds) {
-            const tgMessage = `Received email from ${from} to ${recipient}\nSubject: ${subject}\n\n${text}\n\n` +
+            let tgMessage = `Received email from ${from} to ${recipient}\nSubject: ${subject}\n\n${text}\n\n` +
               `Message-ID: ${metadata.messageId || 'N/A'}\n` +
               `In-Reply-To: ${metadata.inReplyTo || 'N/A'}\n` +
               `References: ${metadata.references ? metadata.references.join(', ') : 'N/A'}`
 
-            await axios.post(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
-              chat_id: tgId,
-              text: tgMessage,
-            })
-            logger.info(`Message sent to Telegram ID ${tgId}`)
+            tgMessage = tgMessage.replace(/[\u0000-\u001F\u007F-\u009F]/g, '')
+
+            const messageParts = tgMessage.match(/.{1,4096}/g) || []
+
+            for (const part of messageParts) {
+              if (part.trim()) {
+                await axios.post(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
+                  chat_id: tgId,
+                  text: part,
+                })
+                logger.info(`Message part sent to Telegram ID ${tgId}`)
+              }
+            }
 
             for (const filePath of attachmentPaths) {
-              const formData = new FormData()
-              formData.append('chat_id', tgId)
-              formData.append('document', fs.createReadStream(filePath))
+              if (fs.existsSync(filePath)) {
+                const formData = new FormData()
+                formData.append('chat_id', tgId)
+                formData.append('document', fs.createReadStream(filePath))
 
-              await axios.post(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendDocument`, formData, {
-                headers: formData.getHeaders(),
-              })
-              logger.info(`File sent to Telegram ID ${tgId}: ${filePath}`)
+                await axios.post(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendDocument`, formData, {
+                  headers: formData.getHeaders(),
+                })
+                logger.info(`File sent to Telegram ID ${tgId}: ${filePath}`)
+              } else {
+                logger.warn(`File not found: ${filePath}`)
+              }
             }
           }
         } else {
