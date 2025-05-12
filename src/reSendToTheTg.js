@@ -1,3 +1,11 @@
+const configData = require('../src/config')
+const axios = require('axios')
+const fs = require('fs')
+const FormData = require('form-data')
+const logger = require('../src/logger')
+require('dotenv').config()
+
+
 module.exports.reSendToTheTelegram = async function (to, from, subject, text, attachmentPaths, forwardArray, metadata) {
   try {
     const recipients = [...(forwardArray || []), to]
