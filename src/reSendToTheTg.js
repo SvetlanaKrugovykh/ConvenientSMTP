@@ -27,22 +27,22 @@ module.exports.reSendToTheTelegram = async function (to, from, subject, text, at
               return ['\n', '\r'].includes(char) ? char : ''
             })
 
-            const messageParts = tgMessage.match(/.{1,4096}/g) || []
-
-            for (const part of messageParts) {
-              if (part.trim()) {
-                try {
-                  await axios.post(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
-                    chat_id: tgId,
-                    text: part,
-                    parse_mode: 'Markdown',
-                  })
-                  logger.info(`Message part sent to Telegram ID ${tgId}`)
-                } catch (error) {
-                  logger.error(`Failed to send message part to Telegram ID ${tgId}:`, error.response?.data || error.message)
-                }
-              }
+            if (tgMessage.length > 4096) {
+              logger.warn(`Message exceeds Telegram limit and will be truncated: ${tgMessage.length} characters`)
+              tgMessage = tgMessage.slice(0, 4093) + '...'
             }
+
+            try {
+              await axios.post(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
+                chat_id: tgId,
+                text: part,
+                parse_mode: 'Markdown',
+              })
+              logger.info(`Message part sent to Telegram ID ${tgId}`)
+            } catch (error) {
+              logger.error(`Failed to send message part to Telegram ID ${tgId}:`, error.response?.data || error.message)
+            }
+
 
             for (const filePath of attachmentPaths) {
               if (fs.existsSync(filePath)) {
