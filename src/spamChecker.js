@@ -7,6 +7,11 @@ module.exports.containsSpamContent = function (emailBody, spamContentList) {
 
 module.exports.reportSpamToGmail = async function (sender, emailBody) {
   try {
+    if (!sender.endsWith('@gmail.com')) {
+      logger.info(`Sender ${sender} is not from Gmail. Skipping spam report.`)
+      return
+    }
+
     const gmailReportEndpoint = 'https://support.google.com/mail/contact/abuse'
     const reportData = {
       sender,
