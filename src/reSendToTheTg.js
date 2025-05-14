@@ -35,12 +35,12 @@ module.exports.reSendToTheTelegram = async function (to, from, subject, text, at
             try {
               await axios.post(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
                 chat_id: tgId,
-                text: part,
+                text: tgMessage,
                 parse_mode: 'Markdown',
               })
-              logger.info(`Message part sent to Telegram ID ${tgId}`)
+              logger.info(`Message sent to Telegram ID ${tgId}`)
             } catch (error) {
-              logger.error(`Failed to send message part to Telegram ID ${tgId}:`, error.response?.data || error.message)
+              logger.error(`Failed to send message to Telegram ID ${tgId}:`, error.response?.data || error.message)
             }
 
 
