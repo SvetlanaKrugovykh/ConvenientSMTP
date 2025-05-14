@@ -1,6 +1,7 @@
 const logger = require('./logger')
 const simpleParser = require('mailparser').simpleParser
 const { processEmail } = require('./processEmail')
+const { containsSpamContent, reportSpamToGmail } = require('./spamChecker')
 
 module.exports.relayReceiveExternal = async function (stream, session, callback, configData) {
   const recipients = session.envelope.rcptTo.map((rcpt) => rcpt.address.trim().toLowerCase())
@@ -16,18 +17,8 @@ module.exports.relayReceiveExternal = async function (stream, session, callback,
   })
 
   if (isSpam) {
-    logger.warn(`Blocked spam email from ${sender}`);
+    logger.warn(`Blocked spam email from ${sender}`)
     return callback(new Error('Your email was identified as spam and rejected.'))
-  }
-
-  if (!recipients.some((recipient) => configData.forwardingRules.validRecipients.map((e) => e.trim()).includes(recipient))) {
-    logger.info('No valid recipients found for external email')
-    return callback(new Error('No valid recipients found'))
-  }
-
-  if (configData.forwardingRules.blacklist.map((e) => e.trim()).includes(sender)) {
-    logger.info('Sender is blacklisted (external)')
-    return callback(new Error('Sender is blacklisted'))
   }
 
   stream.on('data', (chunk) => {
@@ -35,31 +26,31 @@ module.exports.relayReceiveExternal = async function (stream, session, callback,
   })
 
   stream.on('end', async () => {
-    logger.info(`Received external email from ${sender} to ${recipients.join(', ')}`)
+    logger.info(`Received email from ${sender} to ${recipients.join(', ')}`)
 
     try {
+      if (containsSpamContent(emailBody, configData.forwardingRules.spamContentList)) {
+        logger.warn(`Blocked spam email from ${sender} due to spam content`)
+
+        if (sender.endsWith('@gmail.com')) {
+          await reportSpamToGmail(sender, emailBody)
+        }
+
+        return callback(new Error('Your email was identified as spam and rejected due to content.'))
+      }
+
       const parsed = await simpleParser(emailBody)
       const subject = parsed.subject || 'No Subject'
       const text = parsed.text || parsed.html || ''
       const attachments = parsed.attachments || []
-      const messageId = parsed.messageId
-      const inReplyTo = parsed.inReplyTo
-      const references = parsed.references || []
 
-      logger.info(`Parsed external email from ${sender} to ${recipients.join(', ')}`)
-      logger.info(`Message-ID: ${messageId}`)
-      logger.info(`In-Reply-To: ${inReplyTo}`)
-      logger.info(`References: ${references.join(', ')}`)
+      logger.info('Email received and parsed. Attachments:', attachments.map((a) => a.filename))
 
-      await processEmail(recipients, sender, subject, text, attachments, configData, {
-        messageId,
-        inReplyTo,
-        references,
-      })
+      await processEmail(recipients, sender, subject, text, attachments, configData)
 
-      logger.info('External email processed successfully for all recipients')
+      logger.info('Email processed successfully for all recipients')
     } catch (error) {
-      logger.error('Error processing external email:', error)
+      logger.error('Error processing email:', error)
     }
 
     callback()

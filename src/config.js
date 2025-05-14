@@ -8,6 +8,12 @@ const antispamList = fs
   .map((entry) => entry.trim().toLowerCase())
   .filter(Boolean)
 
+const spamContentList = fs
+  .readFileSync(path.join(__dirname, '../config', 'spam_content.txt'), 'utf-8')
+  .split('\n')
+  .map((entry) => entry.trim().toLowerCase())
+  .filter(Boolean)
+
 const blacklist = fs
   .readFileSync(path.join(__dirname, '../config', 'blacklist.txt'), 'utf-8')
   .split('\n')
@@ -52,7 +58,8 @@ const forwardingRules = {
   validRecipients,
   forwardRules,
   rcptToTg,
-  antispamList
+  antispamList,
+  spamContentList
 }
 
 module.exports = {
