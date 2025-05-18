@@ -14,11 +14,16 @@ module.exports.reSendToTheTelegram = async function (to, from, subject, text, at
         const tgIds = configData.forwardingRules.rcptToTg[recipient]?.split(',').map(id => id.trim())
         if (tgIds && tgIds.length > 0) {
           for (const tgId of tgIds) {
+            let cleanText = text
+            if (/<[a-z][\s\S]*>/i.test(text)) {
+              cleanText = text.replace(/<[^>]+>/g, '').replace(/\s{2,}/g, ' ').trim()
+            }
+
             let tgMessage = `📧 *Received Email*\n\n` +
               `*From:* ${from}\n` +
               `*To:* ${recipient}\n` +
               `*Subject:* ${subject}\n\n` +
-              `*Message Body:*\n${text}\n\n` +
+              `*Message Body:*\n${cleanText}\n\n` +
               `*Message-ID:* ${metadata.messageId || 'N/A'}\n` +
               `*In-Reply-To:* ${metadata.inReplyTo || 'N/A'}\n` +
               `*References:* ${metadata.references ? metadata.references.join(', ') : 'N/A'}`
@@ -42,7 +47,6 @@ module.exports.reSendToTheTelegram = async function (to, from, subject, text, at
             } catch (error) {
               logger.error(`Failed to send message to Telegram ID ${tgId}:`, error.response?.data || error.message)
             }
-
 
             for (const filePath of attachmentPaths) {
               if (fs.existsSync(filePath)) {
