@@ -6,6 +6,7 @@ const { relayReceiveLocal } = require('./src/relayReceiveLocal')
 const { relayReceiveExternal } = require('./src/relayReceiveExternal')
 const { relaySend } = require('./src/relaySend')
 const { checkBlacklists, checkSPF, checkPTR } = require('./src/security')
+const { canConnect } = require('./src/connectionLimiter')
 require('dotenv').config()
 const updateTables = require('./db/tablesUpdate').updateTables
 
@@ -95,6 +96,11 @@ function handleOnAuth(authData, session, callback) {
 
 async function handleOnConnect(session, callback) {
   logger.info(`Incoming connection from ${session.remoteAddress}`)
+
+  if (!canConnect(session.remoteAddress, 3)) {
+    logger.warn(`Too many connections from ${session.remoteAddress}`);
+    return callback(new Error('Too many connections from your IP, try later'));
+  }
 
   session.hostNameAppearsAs = serverConfig.name
 
