@@ -1,7 +1,7 @@
 const logger = require('./logger')
 const simpleParser = require('mailparser').simpleParser
 const { processEmail } = require('./processEmail')
-const { containsSpamContent, reportSpamToGmail } = require('./spamChecker')
+const { containsSpamContent, checkSpamSubject, reportSpamToGmail } = require('./spamChecker')
 
 module.exports.relayReceiveExternal = async function (stream, session, callback, configData) {
   const recipients = session.envelope.rcptTo.map((rcpt) => rcpt.address.trim().toLowerCase())
@@ -29,6 +29,24 @@ module.exports.relayReceiveExternal = async function (stream, session, callback,
     logger.info(`Received email from ${sender} to ${recipients.join(', ')}`)
 
     try {
+
+      const parsed = await simpleParser(emailBody)
+      const subject = parsed.subject || 'No Subject'
+      const text = parsed.text || parsed.html || ''
+      const attachments = parsed.attachments || []
+      const messageId = parsed.messageId
+      const inReplyTo = parsed.inReplyTo
+      const references = parsed.references || []
+
+      if (checkSpamSubject(subject, configData.forwardingRules.spamSubjectList)) {
+        logger.warn(`Blocked spam email from ${sender} due to subject`)
+        if (sender.endsWith('@gmail.com')) {
+          await reportSpamToGmail(sender, emailBody)
+        }
+        return callback(new Error('Your email was identified as spam and rejected due to subject.'))
+      }
+
+
       if (containsSpamContent(emailBody, configData.forwardingRules.spamContentList)) {
         logger.warn(`Blocked spam email from ${sender} due to spam content`)
 
@@ -39,13 +57,6 @@ module.exports.relayReceiveExternal = async function (stream, session, callback,
         return callback(new Error('Your email was identified as spam and rejected due to content.'))
       }
 
-      const parsed = await simpleParser(emailBody)
-      const subject = parsed.subject || 'No Subject'
-      const text = parsed.text || parsed.html || ''
-      const attachments = parsed.attachments || []
-      const messageId = parsed.messageId
-      const inReplyTo = parsed.inReplyTo
-      const references = parsed.references || []
 
       logger.info(`Parsed external email from ${sender} to ${recipients.join(', ')}`)
       logger.info(`Message-ID: ${messageId}`)

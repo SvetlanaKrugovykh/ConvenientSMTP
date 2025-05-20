@@ -5,6 +5,10 @@ module.exports.containsSpamContent = function (emailBody, spamContentList) {
   return spamContentList.some((spamPhrase) => emailBody.toLowerCase().includes(spamPhrase.toLowerCase()))
 }
 
+module.exports.checkSpamSubject = function (subject, spamSubjectList) {
+  return spamSubjectList.some((spamPhrase) => subject.toLowerCase().includes(spamPhrase.toLowerCase()))
+}
+
 module.exports.reportSpamToGmail = async function (sender, emailBody) {
   try {
     if (!sender.endsWith('@gmail.com')) {
