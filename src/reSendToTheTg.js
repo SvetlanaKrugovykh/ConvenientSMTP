@@ -38,6 +38,7 @@ module.exports.reSendToTheTelegram = async function (to, from, subject, text, at
             }
 
             try {
+              await delay(400)
               await axios.post(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
                 chat_id: tgId,
                 text: tgMessage,
@@ -54,6 +55,7 @@ module.exports.reSendToTheTelegram = async function (to, from, subject, text, at
                 formData.append('chat_id', tgId)
                 formData.append('document', fs.createReadStream(filePath))
 
+                await delay(400)
                 await axios.post(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendDocument`, formData, {
                   headers: formData.getHeaders(),
                 })
@@ -71,4 +73,8 @@ module.exports.reSendToTheTelegram = async function (to, from, subject, text, at
   } catch (error) {
     logger.error('Error saving email or sending to Telegram:', error)
   }
+}
+
+function delay(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
 }
