@@ -45,6 +45,7 @@ const validRecipients = fs
   .filter(Boolean)
 
 const forwardRules = require('../config/forwarding-rules').forwardRules
+const users = require('../config/users').users
 
 const rcptToTg = fs
   .readFileSync(path.join(__dirname, '../config', 'rcpt_to_tg.in_list'), 'utf-8')
@@ -64,6 +65,7 @@ const forwardingRules = {
   validRecipients,
   forwardRules,
   rcptToTg,
+  users,
   antispamList,
   spamContentList,
   spamSubjectList

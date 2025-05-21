@@ -1,14 +1,16 @@
-// src/auth.js
 const { forwardingRules } = require('./config')
 
 module.exports = function (auth, session, callback) {
   console.log('onAuth called')
   console.log('Auth data:', auth)
-  console.log('Valid recipients:', forwardingRules.validRecipients)
 
-  if (forwardingRules.validRecipients.includes(auth.username)) {
+  const user = forwardingRules.users.find(
+    u => u.username === auth.username && u.password === auth.password
+  )
+
+  if (user) {
     console.log('Authentication successful')
-    return callback(null, { user: 'userdata' })
+    return callback(null, { user: user.username })
   }
 
   console.log('Authentication failed')

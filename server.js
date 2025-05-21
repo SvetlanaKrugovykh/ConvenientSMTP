@@ -49,23 +49,19 @@ function handleOnData(stream, session, callback) {
     const isAllowedRelayIP = configData.forwardingRules.allowedRelayIPs.includes(remoteIP)
 
     if (remoteIP === configData.server) {
-      if (
-        recipients.some((recipient) => !isValidRecipient(recipient))
-      ) {
+      if (isAllowedRelayIP && session.authUser) {
         logger.info('Handling as relaySend (outgoing mail from local server or allowed IP)')
         relaySend(stream, session, callback, serverConfig)
       } else {
         logger.info('Handling as relayReceiveLocal (local incoming mail)')
         relayReceiveLocal(stream, session, callback, configData)
       }
+    } else if (isAllowedRelayIP && session.authUser) {
+      logger.info('Handling as relaySend (outgoing mail from allowed external IP)')
+      relaySend(stream, session, callback, configData)
     } else if (recipients.some(isValidRecipient)) {
       logger.info('Handling as relayReceiveExternal (external incoming mail)')
       relayReceiveExternal(stream, session, callback, configData)
-    } else if (
-      isValidRecipient(sender) || isAllowedRelayIP
-    ) {
-      logger.info('Handling as relaySend (outgoing mail from allowed external IP)')
-      relaySend(stream, session, callback, configData)
     } else {
       logger.warn('Neither sender nor recipients match validRecipients. Rejecting.')
       return callback(new Error('Unauthorized relay attempt'))
@@ -90,9 +86,13 @@ function handleOnAuth(authData, session, callback) {
     return callback(null, { user: 'anonymous' })
   }
 
-  auth(authData, session, callback)
+  auth(authData, session, (err, user) => {
+    if (!err && user) {
+      session.authUser = user
+    }
+    callback(err, user)
+  })
 }
-
 
 async function handleOnConnect(session, callback) {
   logger.info(`Incoming connection from ${session.remoteAddress}`)
