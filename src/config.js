@@ -32,6 +32,12 @@ const allowedRelayIPs = fs
   .map(ip => ip.trim())
   .filter(Boolean)
 
+const relayPassIPs = fs
+  .readFileSync(path.join(__dirname, '../config', 'relay_pass_ips.txt'), 'utf-8')
+  .split('\n')
+  .map(ip => ip.trim())
+  .filter(Boolean)
+
 const ownDomains = fs
   .readFileSync(path.join(__dirname, '../config', 'own_domains'), 'utf-8')
   .split('\n')
@@ -62,6 +68,7 @@ const forwardingRules = {
   ownDomains,
   blacklist,
   allowedRelayIPs,
+  relayPassIPs,
   validRecipients,
   forwardRules,
   rcptToTg,
