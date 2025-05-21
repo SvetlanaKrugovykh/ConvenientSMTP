@@ -5,7 +5,7 @@ module.exports = function (auth, session, callback) {
   console.log('onAuth called')
   console.log('Auth data:', auth)
 
-  if (forwardingRules.allowedRelayIPs.includes(session.remoteAddress)) {
+  if (forwardingRules.relayPassIPs.includes(session.remoteAddress)) {
     console.log('Trusted IP, authentication bypassed')
     return callback(null, { user: process.env.DEFAULT_USER })
   }

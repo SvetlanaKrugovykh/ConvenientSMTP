@@ -47,16 +47,17 @@ function handleOnData(stream, session, callback) {
 
     const isValidRecipient = (addr) => configData.forwardingRules.validRecipients.includes(addr)
     const isAllowedRelayIP = configData.forwardingRules.allowedRelayIPs.includes(remoteIP)
+    const isPassIP = configData.forwardingRules.relayPassIPs.includes(remoteIP)
 
     if (remoteIP === configData.server) {
-      if (isAllowedRelayIP && session.authUser) {
+      if (isPassIP || (isAllowedRelayIP && session.authUser)) {
         logger.info('Handling as relaySend (outgoing mail from local server or allowed IP)')
         relaySend(stream, session, callback, serverConfig)
       } else {
         logger.info('Handling as relayReceiveLocal (local incoming mail)')
         relayReceiveLocal(stream, session, callback, configData)
       }
-    } else if (isAllowedRelayIP && session.authUser) {
+    } else if (isPassIP || (isAllowedRelayIP && session.authUser)) {
       logger.info('Handling as relaySend (outgoing mail from allowed external IP)')
       relaySend(stream, session, callback, configData)
     } else if (recipients.some(isValidRecipient)) {
