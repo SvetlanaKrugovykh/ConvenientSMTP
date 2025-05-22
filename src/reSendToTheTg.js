@@ -20,13 +20,13 @@ module.exports.reSendToTheTelegram = async function (to, from, subject, text, at
             }
 
             let tgMessage = `📧 *Received Email*\n\n` +
-              `*From:* ${from}\n` +
-              `*To:* ${recipient}\n` +
-              `*Subject:* ${subject}\n\n` +
-              `*Message Body:*\n${cleanText}\n\n` +
-              `*Message-ID:* ${metadata.messageId || 'N/A'}\n` +
-              `*In-Reply-To:* ${metadata.inReplyTo || 'N/A'}\n` +
-              `*References:* ${metadata.references ? metadata.references.join(', ') : 'N/A'}`
+              `*From:* ${escapeMarkdown(from)}\n` +
+              `*To:* ${escapeMarkdown(recipient)}\n` +
+              `*Subject:* ${escapeMarkdown(subject)}\n\n` +
+              `*Message Body:*\n${escapeMarkdown(cleanText)}\n\n` +
+              `*Message-ID:* ${escapeMarkdown(metadata.messageId || 'N/A')}\n` +
+              `*In-Reply-To:* ${escapeMarkdown(metadata.inReplyTo || 'N/A')}\n` +
+              `*References:* ${escapeMarkdown(metadata.references ? metadata.references.join(', ') : 'N/A')}`
 
             tgMessage = tgMessage.replace(/[\u0000-\u001F\u007F-\u009F]/g, (char) => {
               return ['\n', '\r'].includes(char) ? char : ''
@@ -37,6 +37,7 @@ module.exports.reSendToTheTelegram = async function (to, from, subject, text, at
             for (const part of messageParts) {
               try {
                 await delay(400)
+                logger.info(`Message part sent to Telegram ${part}`)
                 await sendWithRetry(() =>
                   axios.post(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
                     chat_id: tgId,
@@ -90,4 +91,8 @@ function splitMessage(text, maxLen = 4096) {
     current += maxLen
   }
   return parts
+}
+
+function escapeMarkdown(text) {
+  return text.replace(/([_*\[\]()~`>#+\-=|{}.!\\])/g, '\\$1')
 }
