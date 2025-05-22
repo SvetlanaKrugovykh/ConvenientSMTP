@@ -51,6 +51,7 @@ function handleOnData(stream, session, callback) {
 
     if (remoteIP === configData.server) {
       if (isPassIP || (isAllowedRelayIP && session.authUser)) {
+        if (isPassIP) logger.info('Trusted IP, authentication bypassed (handleOnData_1)')
         logger.info('Handling as relaySend (outgoing mail from local server or allowed IP)')
         relaySend(stream, session, callback, serverConfig)
       } else {
@@ -58,6 +59,7 @@ function handleOnData(stream, session, callback) {
         relayReceiveLocal(stream, session, callback, configData)
       }
     } else if (isPassIP || (isAllowedRelayIP && session.authUser)) {
+      if (isPassIP) logger.info('Trusted IP, authentication bypassed (handleOnData_2)')
       logger.info('Handling as relaySend (outgoing mail from allowed external IP)')
       relaySend(stream, session, callback, configData)
     } else if (recipients.some(isValidRecipient)) {

@@ -39,14 +39,16 @@ module.exports.reSendToTheTelegram = async function (to, from, subject, text, at
 
             try {
               await delay(400)
-              await axios.post(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
-                chat_id: tgId,
-                text: tgMessage,
-                parse_mode: 'Markdown',
-              })
+              await sendWithRetry(() =>
+                axios.post(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
+                  chat_id: tgId,
+                  text: tgMessage,
+                  parse_mode: 'Markdown',
+                })
+              )
               logger.info(`Message sent to Telegram ID ${tgId}`)
             } catch (error) {
-              logger.error(`Failed to send message to Telegram ID ${tgId}:`, error.response?.data || error.message)
+              logger.error(`Failed to send message to Telegram ID ${tgId}:`, error.response?.data || error.message, tgMessage)
             }
 
             for (const filePath of attachmentPaths) {
@@ -56,10 +58,16 @@ module.exports.reSendToTheTelegram = async function (to, from, subject, text, at
                 formData.append('document', fs.createReadStream(filePath))
 
                 await delay(400)
-                await axios.post(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendDocument`, formData, {
-                  headers: formData.getHeaders(),
-                })
-                logger.info(`File sent to Telegram ID ${tgId}: ${filePath}`)
+                try {
+                  await sendWithRetry(() =>
+                    axios.post(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendDocument`, formData, {
+                      headers: formData.getHeaders(),
+                    })
+                  )
+                  logger.info(`File sent to Telegram ID ${tgId}: ${filePath}`)
+                } catch (error) {
+                  logger.error(`Failed to send file to Telegram ID ${tgId}:`, error.response?.data || error.message, filePath)
+                }
               } else {
                 logger.warn(`File not found: ${filePath}`)
               }
@@ -77,4 +85,15 @@ module.exports.reSendToTheTelegram = async function (to, from, subject, text, at
 
 function delay(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function sendWithRetry(sendFn, retries = 2, delayMs = 1000) {
+  for (let i = 0; i <= retries; i++) {
+    try {
+      return await sendFn()
+    } catch (err) {
+      if (i === retries) throw err
+      await delay(delayMs)
+    }
+  }
 }

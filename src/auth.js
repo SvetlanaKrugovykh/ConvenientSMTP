@@ -1,12 +1,13 @@
 const { forwardingRules } = require('./config')
+const logger = require('./logger')
 require('dotenv').config()
 
 module.exports = function (auth, session, callback) {
-  console.log('onAuth called')
-  console.log('Auth data:', auth)
+  logger.info('onAuth called')
+  logger.info('Auth data:', auth)
 
   if (forwardingRules.relayPassIPs.includes(session.remoteAddress)) {
-    console.log('Trusted IP, authentication bypassed')
+    logger.info('Trusted IP, authentication bypassed (auth)')
     return callback(null, { user: process.env.DEFAULT_USER })
   }
 
@@ -15,10 +16,10 @@ module.exports = function (auth, session, callback) {
   )
 
   if (user) {
-    console.log('Authentication successful')
+    logger.info('Authentication successful')
     return callback(null, { user: user.username })
   }
 
-  console.log('Authentication failed')
+  logger.warn('Authentication failed')
   return callback(new Error('Invalid username or password'))
 }
