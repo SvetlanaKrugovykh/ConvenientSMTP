@@ -37,7 +37,7 @@ module.exports.reSendToTheTelegram = async function (to, from, subject, text, at
             for (const part of messageParts) {
               try {
                 await delay(400)
-                logger.info(`Message part sent to Telegram ${part}`)
+                logger.info(`Trying to send message part to Telegram ID ${tgId}:`, part)
                 await sendWithRetry(() =>
                   axios.post(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
                     chat_id: tgId,
