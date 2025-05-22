@@ -32,23 +32,22 @@ module.exports.reSendToTheTelegram = async function (to, from, subject, text, at
               return ['\n', '\r'].includes(char) ? char : ''
             })
 
-            if (tgMessage.length > 4096) {
-              logger.warn(`Message exceeds Telegram limit and will be truncated: ${tgMessage.length} characters`)
-              tgMessage = tgMessage.slice(0, 4093) + '...'
-            }
+            const messageParts = splitMessage(tgMessage, 4096)
 
-            try {
-              await delay(400)
-              await sendWithRetry(() =>
-                axios.post(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
-                  chat_id: tgId,
-                  text: tgMessage,
-                  parse_mode: 'Markdown',
-                })
-              )
-              logger.info(`Message sent to Telegram ID ${tgId}`)
-            } catch (error) {
-              logger.error(`Failed to send message to Telegram ID ${tgId}:`, error.response?.data || error.message, tgMessage)
+            for (const part of messageParts) {
+              try {
+                await delay(400)
+                await sendWithRetry(() =>
+                  axios.post(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
+                    chat_id: tgId,
+                    text: part,
+                    parse_mode: 'Markdown',
+                  })
+                )
+                logger.info(`Message part sent to Telegram ID ${tgId}`)
+              } catch (error) {
+                logger.error(`Failed to send message part to Telegram ID ${tgId}:`, error.response?.data || error.message, part)
+              }
             }
 
             for (const filePath of attachmentPaths) {
@@ -83,17 +82,12 @@ module.exports.reSendToTheTelegram = async function (to, from, subject, text, at
   }
 }
 
-function delay(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-async function sendWithRetry(sendFn, retries = 2, delayMs = 1000) {
-  for (let i = 0; i <= retries; i++) {
-    try {
-      return await sendFn()
-    } catch (err) {
-      if (i === retries) throw err
-      await delay(delayMs)
-    }
+function splitMessage(text, maxLen = 4096) {
+  const parts = []
+  let current = 0
+  while (current < text.length) {
+    parts.push(text.slice(current, current + maxLen))
+    current += maxLen
   }
+  return parts
 }
