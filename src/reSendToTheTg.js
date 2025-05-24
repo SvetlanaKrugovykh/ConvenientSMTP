@@ -5,6 +5,24 @@ const FormData = require('form-data')
 const logger = require('../src/logger')
 require('dotenv').config()
 
+function delay(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms))
+}
+
+function splitMessage(text, maxLen = 4096) {
+  const parts = []
+  let current = 0
+  while (current < text.length) {
+    parts.push(text.slice(current, current + maxLen))
+    current += maxLen
+  }
+  return parts
+}
+
+function escapeMarkdown(text) {
+  return text.replace(/([_*\[\]()~`>#+\-=|{}.!\\])/g, '\\$1')
+}
+
 module.exports.reSendToTheTelegram = async function (to, from, subject, text, attachmentPaths, forwardArray, metadata) {
   try {
     const recipients = [...(forwardArray || []), to]
@@ -81,18 +99,4 @@ module.exports.reSendToTheTelegram = async function (to, from, subject, text, at
   } catch (error) {
     logger.error('Error saving email or sending to Telegram:', error)
   }
-}
-
-function splitMessage(text, maxLen = 4096) {
-  const parts = []
-  let current = 0
-  while (current < text.length) {
-    parts.push(text.slice(current, current + maxLen))
-    current += maxLen
-  }
-  return parts
-}
-
-function escapeMarkdown(text) {
-  return text.replace(/([_*\[\]()~`>#+\-=|{}.!\\])/g, '\\$1')
 }
