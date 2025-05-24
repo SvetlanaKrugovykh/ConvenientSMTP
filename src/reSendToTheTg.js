@@ -3,6 +3,7 @@ const axios = require('axios')
 const fs = require('fs')
 const FormData = require('form-data')
 const logger = require('../src/logger')
+const { log } = require('console')
 require('dotenv').config()
 
 function delay(ms) {
@@ -20,9 +21,8 @@ function splitMessage(text, maxLen = 4096) {
 }
 
 function escapeMarkdown(text) {
-  // const escapeChars = ['_', '*', '[', ']', '(', ')', '~', '`', '>', '#', '+', '-', '=', '|', '{', '}', '!']
-  // return text.replace(new RegExp(`([${escapeChars.join('\\')}])`, 'g'), '\\$1')
-  return text
+  const escapeChars = ['_', '*', '[', ']', '(', ')', '~', '`', '>', '#', '+', '-', '=', '|', '{', '}', '!']
+  return text.replace(new RegExp(`([${escapeChars.join('\\')}])`, 'g'), '\\$1')
 }
 
 
@@ -49,13 +49,14 @@ module.exports.reSendToTheTelegram = async function (to, from, subject, text, at
               `*In-Reply-To:* ${escapeMarkdown(metadata.inReplyTo || 'N/A')}\n` +
               `*References:* ${escapeMarkdown(metadata.references ? metadata.references.join(', ') : 'N/A')}`
 
-            tgMessage = tgMessage.replace(/[\u0000-\u001F\u007F-\u009F]/g, (char) => {
-              return ['\n', '\r'].includes(char) ? char : ''
-            })
+            // tgMessage = tgMessage.replace(/[\u0000-\u001F\u007F-\u009F]/g, (char) => {
+            //   return ['\n', '\r'].includes(char) ? char : ''
+            // })
 
             const messageParts = splitMessage(tgMessage, 4096)
 
             for (const part of messageParts) {
+              logger.info(`Sending message part to Telegram ID ${tgId}:`, part)
               try {
                 await delay(400)
                 logger.info(`Trying to send message part to Telegram ID ${tgId}:`, part)
