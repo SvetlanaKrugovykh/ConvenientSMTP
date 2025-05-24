@@ -49,29 +49,30 @@ module.exports.reSendToTheTelegram = async function (to, from, subject, text, at
               `*In-Reply-To:* ${escapeMarkdown(metadata.inReplyTo || 'N/A')}\n` +
               `*References:* ${escapeMarkdown(metadata.references ? metadata.references.join(', ') : 'N/A')}`
 
-            // tgMessage = tgMessage.replace(/[\u0000-\u001F\u007F-\u009F]/g, (char) => {
-            //   return ['\n', '\r'].includes(char) ? char : ''
-            // })
+            tgMessage = tgMessage.replace(/[\u0000-\u001F\u007F-\u009F]/g, (char) => {
+              return ['\n', '\r'].includes(char) ? char : ''
+            })
 
-            const messageParts = splitMessage(tgMessage, 4096)
+            // const messageParts = splitMessage(tgMessage, 4096)
 
-            for (const part of messageParts) {
-              logger.info(`Sending message part to Telegram ID ${tgId}:`, part)
-              try {
-                await delay(400)
-                logger.info(`Trying to send message part to Telegram ID ${tgId}:`, part)
-                await sendWithRetry(() =>
-                  axios.post(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
-                    chat_id: tgId,
-                    text: part,
-                    parse_mode: 'Markdown',
-                  })
-                )
-                logger.info(`Message part sent to Telegram ID ${tgId}`)
-              } catch (error) {
-                logger.error(`Failed to send message part to Telegram ID ${tgId}:`, error.response?.data || error.message, part)
-              }
+            // for (const part of messageParts) {
+            const part = tgMessage
+            logger.info(`Sending message part to Telegram ID ${tgId}:`, part)
+            try {
+              await delay(400)
+              logger.info(`Trying to send message part to Telegram ID ${tgId}:`, part)
+              await sendWithRetry(() =>
+                axios.post(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
+                  chat_id: tgId,
+                  text: part,
+                  parse_mode: 'Markdown',
+                })
+              )
+              logger.info(`Message part sent to Telegram ID ${tgId}`)
+            } catch (error) {
+              logger.error(`Failed to send message part to Telegram ID ${tgId}:`, error.response?.data || error.message, part)
             }
+            // }
 
             for (const filePath of attachmentPaths) {
               if (fs.existsSync(filePath)) {
