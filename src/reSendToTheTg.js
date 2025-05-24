@@ -20,8 +20,9 @@ function splitMessage(text, maxLen = 4096) {
 }
 
 function escapeMarkdown(text) {
-  const escapeChars = ['_', '*', '[', ']', '(', ')', '~', '`', '>', '#', '+', '-', '=', '|', '{', '}', '!']
-  return text.replace(new RegExp(`([${escapeChars.join('\\')}])`, 'g'), '\\$1')
+  // const escapeChars = ['_', '*', '[', ']', '(', ')', '~', '`', '>', '#', '+', '-', '=', '|', '{', '}', '!']
+  // return text.replace(new RegExp(`([${escapeChars.join('\\')}])`, 'g'), '\\$1')
+  return text
 }
 
 
