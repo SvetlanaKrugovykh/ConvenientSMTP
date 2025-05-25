@@ -29,7 +29,6 @@ module.exports.relayReceiveExternal = async function (stream, session, callback,
     logger.info(`Received email from ${sender} to ${recipients.join(', ')}`)
 
     try {
-
       const parsed = await simpleParser(emailBody)
       const subject = parsed.subject || 'No Subject'
       const text = parsed.text || parsed.html || ''

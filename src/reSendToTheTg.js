@@ -3,7 +3,6 @@ const axios = require('axios')
 const fs = require('fs')
 const FormData = require('form-data')
 const logger = require('../src/logger')
-const { log } = require('console')
 require('dotenv').config()
 
 function delay(ms) {
@@ -20,12 +19,6 @@ function splitMessage(text, maxLen = 4096) {
   return parts
 }
 
-function escapeMarkdown(text) {
-  const escapeChars = ['_', '*', '[', ']', '(', ')', '~', '`', '>', '#', '+', '-', '=', '|', '{', '}', '!']
-  return text.replace(new RegExp(`([${escapeChars.join('\\')}])`, 'g'), '\\$1')
-}
-
-
 module.exports.reSendToTheTelegram = async function (to, from, subject, text, attachmentPaths, forwardArray, metadata) {
   try {
     const recipients = [...(forwardArray || []), to]
@@ -41,38 +34,34 @@ module.exports.reSendToTheTelegram = async function (to, from, subject, text, at
             }
 
             let tgMessage = `📧 *Received Email*\n\n` +
-              `*From:* ${escapeMarkdown(from)}\n` +
-              `*To:* ${escapeMarkdown(recipient)}\n` +
-              `*Subject:* ${escapeMarkdown(subject)}\n\n` +
-              `*Message Body:*\n${escapeMarkdown(cleanText)}\n\n` +
-              `*Message-ID:* ${escapeMarkdown(metadata.messageId || 'N/A')}\n` +
-              `*In-Reply-To:* ${escapeMarkdown(metadata.inReplyTo || 'N/A')}\n` +
-              `*References:* ${escapeMarkdown(metadata.references ? metadata.references.join(', ') : 'N/A')}`
+              `*From:* ${from}\n` +
+              `*To:* ${recipient}\n` +
+              `*Subject:* ${subject}\n` +
+              `*Message Body:*\n${cleanText}\n\n` +
+              `*Message-ID:* ${metadata.messageId || 'N/A'}\n` +
+              `*In-Reply-To:* ${metadata.inReplyTo || 'N/A'}\n` +
+              `*References:* ${metadata.references ? metadata.references.join(', ') : 'N/A'}`
 
             tgMessage = tgMessage.replace(/[\u0000-\u001F\u007F-\u009F]/g, (char) => {
               return ['\n', '\r'].includes(char) ? char : ''
             })
 
-            // const messageParts = splitMessage(tgMessage, 4096)
+            const messageParts = splitMessage(tgMessage, 4096)
 
-            // for (const part of messageParts) {
-            const part = tgMessage
-            logger.info(`Sending message part to Telegram ID ${tgId}:`, part)
-            try {
-              await delay(400)
-              logger.info(`Trying to send message part to Telegram ID ${tgId}:`, part)
-              await sendWithRetry(() =>
-                axios.post(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
+            for (const part of messageParts) {
+              try {
+                await delay(400)
+                logger.info(`Trying to send message part to Telegram ID ${tgId}: ${part}`)
+                await axios.post(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
                   chat_id: tgId,
                   text: part,
-                  parse_mode: 'Markdown',
+                  parse_mode: 'Markdown'
                 })
-              )
-              logger.info(`Message part sent to Telegram ID ${tgId}`)
-            } catch (error) {
-              logger.error(`Failed to send message part to Telegram ID ${tgId}:`, error.response?.data || error.message, part)
+                logger.info(`Message part sent to Telegram ID ${tgId}`)
+              } catch (error) {
+                logger.error(`Failed to send message part to Telegram ID ${tgId}: ${error.response?.data || error.message}`)
+              }
             }
-            // }
 
             for (const filePath of attachmentPaths) {
               if (fs.existsSync(filePath)) {
