@@ -100,9 +100,15 @@ function handleOnAuth(authData, session, callback) {
 async function handleOnConnect(session, callback) {
   logger.info(`Incoming connection from ${session.remoteAddress}`)
 
+  if (configData.forwardingRules.relayPassIPs.includes(session.remoteAddress)) {
+    logger.info(`Trusted IP (relayPassIPs), skipping connection limit: ${session.remoteAddress}`)
+    session.hostNameAppearsAs = serverConfig.name
+    return callback()
+  }
+
   if (!canConnect(session.remoteAddress, 3)) {
-    logger.warn(`Too many connections from ${session.remoteAddress}`);
-    return callback(new Error('Too many connections from your IP, try later'));
+    logger.warn(`Too many connections from ${session.remoteAddress}`)
+    return callback(new Error('Too many connections from your IP, try later'))
   }
 
   session.hostNameAppearsAs = serverConfig.name
