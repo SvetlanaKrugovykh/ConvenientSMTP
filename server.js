@@ -53,7 +53,7 @@ function handleOnData(stream, session, callback) {
       if (isPassIP || (isAllowedRelayIP && session.authUser)) {
         if (isPassIP) logger.info('Trusted IP, authentication bypassed (handleOnData_1)')
         logger.info('Handling as relaySend (outgoing mail from local server or allowed IP)')
-        relaySend(stream, session, callback, serverConfig)
+        relaySend(stream, session, callback, configData)
       } else {
         logger.info('Handling as relayReceiveLocal (local incoming mail)')
         relayReceiveLocal(stream, session, callback, configData)
