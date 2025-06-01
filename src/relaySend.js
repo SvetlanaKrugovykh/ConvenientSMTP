@@ -46,6 +46,10 @@ module.exports.relaySend = async function (stream, session, callback, serverConf
 
       logger.info(`Using MX server: ${targetMX} for recipient: ${recipient}`)
 
+      logger.info(`[DEBUG] About to create SMTPConnection with name: "${serverConfig.name}"`)
+
+      logger.info(`EHLO/HELO will be sent as: "${serverConfig.name}"`)
+
       const connection = new SMTPConnection({
         host: targetMX,
         port: 25,
