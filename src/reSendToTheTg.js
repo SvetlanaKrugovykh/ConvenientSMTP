@@ -50,7 +50,6 @@ module.exports.reSendToTheTelegram = async function (to, from, subject, text, at
 
             for (const part of messageParts) {
               try {
-                await delay(400)
                 logger.info(`Trying to send message part to Telegram ID ${tgId}: ${part}`)
                 await axios.post(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
                   chat_id: tgId,
@@ -58,6 +57,7 @@ module.exports.reSendToTheTelegram = async function (to, from, subject, text, at
                   parse_mode: 'Markdown'
                 })
                 logger.info(`Message part sent to Telegram ID ${tgId}`)
+                await delay(800)
               } catch (error) {
                 logger.error(`Failed to send message part to Telegram ID ${tgId}: ${error.response?.data || error.message}`)
               }
@@ -69,12 +69,12 @@ module.exports.reSendToTheTelegram = async function (to, from, subject, text, at
                 formData.append('chat_id', tgId)
                 formData.append('document', fs.createReadStream(filePath))
 
-                await delay(400)
                 try {
                   await axios.post(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendDocument`, formData, {
                     headers: formData.getHeaders(),
                   })
                   logger.info(`File sent to Telegram ID ${tgId}: ${filePath}`)
+                  await delay(800)
                 } catch (error) {
                   logger.error(`Failed to send file to Telegram ID ${tgId}:`, error.response?.data || error.message, filePath)
                 }
@@ -83,8 +83,6 @@ module.exports.reSendToTheTelegram = async function (to, from, subject, text, at
               }
             }
           }
-        } else {
-          logger.info(`No Telegram ID found for recipient ${recipient}`)
         }
       }
     }
