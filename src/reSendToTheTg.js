@@ -71,11 +71,9 @@ module.exports.reSendToTheTelegram = async function (to, from, subject, text, at
 
                 await delay(400)
                 try {
-                  await sendWithRetry(() =>
-                    axios.post(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendDocument`, formData, {
-                      headers: formData.getHeaders(),
-                    })
-                  )
+                  await axios.post(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendDocument`, formData, {
+                    headers: formData.getHeaders(),
+                  })
                   logger.info(`File sent to Telegram ID ${tgId}: ${filePath}`)
                 } catch (error) {
                   logger.error(`Failed to send file to Telegram ID ${tgId}:`, error.response?.data || error.message, filePath)
