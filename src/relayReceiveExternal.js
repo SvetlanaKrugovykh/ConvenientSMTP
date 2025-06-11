@@ -45,8 +45,11 @@ module.exports.relayReceiveExternal = async function (stream, session, callback,
         return callback(new Error('Your email was identified as spam and rejected due to subject.'))
       }
 
-
-      if (containsSpamContent(emailBody, configData.forwardingRules.spamContentList)) {
+      if (
+        containsSpamContent(emailBody, configData.forwardingRules.spamContentList) ||
+        containsSpamContent(text, configData.forwardingRules.spamContentList) ||
+        containsSpamContent(html, configData.forwardingRules.spamContentList)
+      ) {
         logger.warn(`Blocked spam email from ${sender} due to spam content`)
 
         if (sender.endsWith('@gmail.com')) {
@@ -55,7 +58,6 @@ module.exports.relayReceiveExternal = async function (stream, session, callback,
 
         return callback(new Error('Your email was identified as spam and rejected due to content.'))
       }
-
 
       logger.info(`Parsed external email from ${sender} to ${recipients.join(', ')}`)
       logger.info(`Message-ID: ${messageId}`)
