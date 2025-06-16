@@ -31,7 +31,8 @@ module.exports.relayReceiveExternal = async function (stream, session, callback,
     try {
       const parsed = await simpleParser(emailBody)
       const subject = parsed.subject || 'No Subject'
-      const text = parsed.text || parsed.html || ''
+      const text = parsed?.text || parsed.html || ''
+      const html = parsed?.html || ''
       const attachments = parsed.attachments || []
       const messageId = parsed.messageId
       const inReplyTo = parsed.inReplyTo
