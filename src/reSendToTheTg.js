@@ -38,13 +38,13 @@ module.exports.reSendToTheTelegram = async function (to, from, subject, text, at
             const fixedFrom = fixEncoding(from)
 
             let tgMessage = `📧 *Received Email*\n\n` +
-              `*From:* ${fixedFrom}\n` +
-              `*To:* ${recipient}\n` +
-              `*Subject:* ${fixedSubject}\n` +
-              `*Message Body:*\n${cleanText}\n\n` +
-              `*Message-ID:* ${metadata.messageId || 'N/A'}\n` +
-              `*In-Reply-To:* ${metadata.inReplyTo || 'N/A'}\n` +
-              `*References:* ${metadata.references ? metadata.references.join(', ') : 'N/A'}`
+              `*From:* ${escapeMarkdown(fixedFrom)}\n` +
+              `*To:* ${escapeMarkdown(recipient)}\n` +
+              `*Subject:* ${escapeMarkdown(fixedSubject)}\n` +
+              `*Message Body:*\n${escapeMarkdown(cleanText)}\n\n` +
+              `*Message-ID:* ${escapeMarkdown(metadata.messageId || 'N/A')}\n` +
+              `*In-Reply-To:* ${escapeMarkdown(metadata.inReplyTo || 'N/A')}\n` +
+              `*References:* ${escapeMarkdown(metadata.references ? metadata.references.join(', ') : 'N/A')}`
 
             tgMessage = tgMessage.replace(/[\u0000-\u001F\u007F-\u009F]/g, (char) => {
               return ['\n', '\r'].includes(char) ? char : ''
@@ -54,7 +54,7 @@ module.exports.reSendToTheTelegram = async function (to, from, subject, text, at
 
             for (const part of messageParts) {
               try {
-                logger.info(`Trying to send message part to Telegram ID ${tgId}: ${part}`)
+                logger.info(`Trying to send message part to Telegram ID ${tgId}`)
                 await axios.post(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
                   chat_id: tgId,
                   text: part,
@@ -63,7 +63,16 @@ module.exports.reSendToTheTelegram = async function (to, from, subject, text, at
                 logger.info(`Message part sent to Telegram ID ${tgId}`)
                 await delay(800)
               } catch (error) {
-                logger.error(`Failed to send message part to Telegram ID ${tgId}: ${error.response?.data || error.message}`)
+                logger.warn(`Markdown failed, retrying as plain text: ${error.response?.data || error.message}`)
+                try {
+                  await axios.post(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
+                    chat_id: tgId,
+                    text: part
+                  })
+                  logger.info(`Message part sent as plain text to Telegram ID ${tgId}`)
+                } catch (retryError) {
+                  logger.error(`Failed to send message part to Telegram ID ${tgId}: ${retryError.response?.data || retryError.message}`)
+                }
               }
             }
 
@@ -110,4 +119,9 @@ function fixEncoding(text) {
   }
 
   return text
+}
+
+function escapeMarkdown(text) {
+  if (!text) return ''
+  return text.replace(/([_*\[\]()~`>#+\-=|{}.!\\$])/g, '\\$1')
 }
