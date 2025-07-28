@@ -33,10 +33,14 @@ module.exports.reSendToTheTelegram = async function (to, from, subject, text, at
               cleanText = text.replace(/<[^>]+>/g, '').replace(/\s{2,}/g, ' ').trim()
             }
 
+            cleanText = fixEncoding(cleanText)
+            const fixedSubject = fixEncoding(subject)
+            const fixedFrom = fixEncoding(from)
+
             let tgMessage = `📧 *Received Email*\n\n` +
-              `*From:* ${from}\n` +
+              `*From:* ${fixedFrom}\n` +
               `*To:* ${recipient}\n` +
-              `*Subject:* ${subject}\n` +
+              `*Subject:* ${fixedSubject}\n` +
               `*Message Body:*\n${cleanText}\n\n` +
               `*Message-ID:* ${metadata.messageId || 'N/A'}\n` +
               `*In-Reply-To:* ${metadata.inReplyTo || 'N/A'}\n` +
@@ -89,4 +93,21 @@ module.exports.reSendToTheTelegram = async function (to, from, subject, text, at
   } catch (error) {
     logger.error('Error saving email or sending to Telegram:', error)
   }
+}
+
+function fixEncoding(text) {
+  if (!text) return ''
+
+  if (text.includes('пїЅ') || text.includes('їЅ')) {
+    try {
+      const iconv = require('iconv-lite')
+      const buffer = Buffer.from(text, 'binary')
+      return iconv.decode(buffer, 'windows-1251')
+    } catch (error) {
+      logger.warn('Failed to fix encoding, using original text')
+      return text
+    }
+  }
+
+  return text
 }
