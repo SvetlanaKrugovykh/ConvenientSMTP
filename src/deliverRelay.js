@@ -49,10 +49,11 @@ module.exports = async function notifyDeliveryFailure({ recipient, sender, subje
     const url = `https://api.telegram.org/bot${botToken}/sendMessage`
     const payload = { chat_id: chatId, text: message }
 
-    // debug info (do not print full token)
     logger.info(`notifyDeliveryFailure: sending to chat ${chatId}, token len=${botToken.length}`)
+    const preview = message.length > 1000 ? message.slice(0, 1000) + '...' : message
+    logger.info(`notifyDeliveryFailure: message length=${message.length}, preview: ${preview}`)
+    logger.debug('notifyDeliveryFailure: payload', { chat_id: chatId, text_preview: preview })
 
-    // try once, then one quick retry
     try {
       const resp = await axios.post(url, payload, { timeout: 8000 })
       logger.info('Telegram notify response status:', resp.status)
