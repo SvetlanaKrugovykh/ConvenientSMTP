@@ -7,7 +7,7 @@ require('dotenv').config()
  * Returns true on success, false on failure.
  */
 module.exports = async function notifyDeliveryFailure({ recipient, sender, subject, error }) {
-  const botToken = (process.env.TELEGRAM_BOT_TOKEN || '').trim()
+  const botToken = (process.env.TELEGRAM_BOT_NOTIFY_TOKEN || '').trim()
   const chatId = (process.env.GROUP_CHAT_ID || '').trim()
 
   if (!botToken || !chatId) {
