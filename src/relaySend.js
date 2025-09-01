@@ -5,6 +5,8 @@ const path = require('path')
 const logger = require('./logger')
 const configData = require('./config')
 
+const notifyDeliveryFailure = require('./deliverRelay')
+
 const simpleParser = require('mailparser').simpleParser
 require('dotenv').config()
 
@@ -80,6 +82,16 @@ module.exports.relaySend = async function (stream, session, callback, serverConf
         connection.quit()
       } catch (err) {
         logger.error(`Error sending mail to ${recipient}:`, err)
+        try {
+          await notifyDeliveryFailure({
+            recipient,
+            sender,
+            subject,
+            error: err
+          })
+        } catch (notifyErr) {
+          logger.warn('notifyDeliveryFailure failed:', notifyErr && (notifyErr.message || notifyErr))
+        }
       }
     }
 
