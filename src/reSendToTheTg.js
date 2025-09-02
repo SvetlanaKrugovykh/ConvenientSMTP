@@ -37,14 +37,18 @@ module.exports.reSendToTheTelegram = async function (to, from, subject, text, at
             const fixedSubject = fixEncoding(subject)
             const fixedFrom = fixEncoding(from)
 
+            const references = Array.isArray(metadata?.references)
+              ? metadata.references
+              : (metadata?.references ? [metadata.references] : [])
+
             let tgMessage = `📧 *Received Email*\n\n` +
               `*From:* ${escapeMarkdown(fixedFrom)}\n` +
               `*To:* ${escapeMarkdown(recipient)}\n` +
               `*Subject:* ${escapeMarkdown(fixedSubject)}\n` +
               `*Message Body:*\n${escapeMarkdown(cleanText)}\n\n` +
-              `*Message-ID:* ${escapeMarkdown(metadata.messageId || 'N/A')}\n` +
-              `*In-Reply-To:* ${escapeMarkdown(metadata.inReplyTo || 'N/A')}\n` +
-              `*References:* ${escapeMarkdown(metadata.references ? metadata.references.join(', ') : 'N/A')}`
+              `*Message-ID:* ${escapeMarkdown(metadata?.messageId || 'N/A')}\n` +
+              `*In-Reply-To:* ${escapeMarkdown(metadata?.inReplyTo || 'N/A')}\n` +
+              `*References:* ${escapeMarkdown(references.length ? references.join(', ') : 'N/A')}`
 
             tgMessage = tgMessage.replace(/[\u0000-\u001F\u007F-\u009F]/g, (char) => {
               return ['\n', '\r'].includes(char) ? char : ''
