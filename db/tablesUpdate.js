@@ -32,7 +32,7 @@ const tableQueries = {
     folder VARCHAR(50) DEFAULT 'inbox',
     message_id VARCHAR(255),
     in_reply_to VARCHAR(255),
-    references TEXT
+    reference_ids TEXT
     )`,
   'attachments': `
     CREATE TABLE attachments (

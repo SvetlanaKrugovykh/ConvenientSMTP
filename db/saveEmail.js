@@ -19,7 +19,7 @@ module.exports.saveEmail = async function (to, from, subject, body, attachments 
     await client.query('BEGIN')
 
     const emailResult = await client.query(
-      'INSERT INTO emails (from_email, to_email, subject, body, message_id, in_reply_to, "references") VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id',
+      'INSERT INTO emails (from_email, to_email, subject, body, message_id, in_reply_to, reference_ids) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id',
       [from, to, subject, body, messageId, inReplyTo, references ? references.join(', ') : null]
     )
 
