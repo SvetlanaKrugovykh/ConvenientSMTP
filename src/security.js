@@ -1,4 +1,6 @@
-const dns = require('dns').promises
+const dnsBase = require('dns')
+dnsBase.setServers(['1.1.1.1', '8.8.8.8'])
+const dns = dnsBase.promises
 const configData = require('./config')
 
 const RBL_LISTS = [
@@ -13,8 +15,7 @@ module.exports.checkBlacklists = async function (ip) {
   for (const rbl of RBL_LISTS) {
     try {
       await dns.resolve(`${reversedIp}.${rbl}`)
-      //return true  //TODO
-      return false
+      return true
     } catch (err) {
       continue
     }
