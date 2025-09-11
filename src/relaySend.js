@@ -57,6 +57,7 @@ module.exports.relaySend = async function (stream, session, callback, serverConf
         port: 25,
         tls: { rejectUnauthorized: false },
         name: serverConfig.name,
+        localAddress: serverConfig.host
       })
 
       try {
