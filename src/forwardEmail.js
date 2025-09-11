@@ -49,6 +49,9 @@ async function sendEmail(forwardAddress, from, subject, text, attachmentPaths) {
     attachments: attachmentPaths.map((filePath) => ({
       path: filePath,
     })),
+    headers: {
+      'X-Relay-Processed': 'true'
+    }
   }
 
   try {

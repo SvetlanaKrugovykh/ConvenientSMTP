@@ -37,6 +37,12 @@ module.exports.relayReceiveLocal = async function (stream, session, callback, co
       const inReplyTo = parsed.inReplyTo
       const references = Array.isArray(parsed.references) ? parsed.references : []
 
+      const relayHeader = parsed.headers.get('x-relay-processed')
+      if (relayHeader === 'true') {
+        logger.info('Skipping email with X-Relay-Processed header to avoid loop')
+        return callback()
+      }
+
       logger.info('Email received and parsed. Attachments:', attachments.map((a) => a.filename))
       logger.info(`Message-ID: ${messageId}`)
       logger.info(`In-Reply-To: ${inReplyTo}`)
