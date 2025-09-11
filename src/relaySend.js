@@ -146,6 +146,7 @@ function buildRawMessage({ sender, recipient, subject, text, attachmentPaths, in
   message += `Date: ${new Date().toUTCString()}\r\n`
   message += `List-Unsubscribe: <mailto:unsubscribe@silver-service.com.ua>\r\n`
   message += `MIME-Version: 1.0\r\n`
+  message += `X-Relay-Processed: true\r\n`
 
   if (Array.isArray(attachmentPaths) && attachmentPaths.length > 0) {
     message += `Content-Type: multipart/mixed; boundary="${boundary}"\r\n\r\n`
