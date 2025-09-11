@@ -82,5 +82,6 @@ module.exports = {
   forwardingRules,
   port: process.env.SMTP_PORT || 2525,
   server: process.env.SMTP_SERVER || 'localhost',
+  server_IN: process.env.SMTP_SERVER_IN || '',
   name: process.env.SMTP_SERVER_NAME
 }
