@@ -30,18 +30,20 @@ module.exports.relayReceiveLocal = async function (stream, session, callback, co
 
     try {
       const parsed = await simpleParser(emailBody)
-      const subject = parsed.subject || 'No Subject'
-      const text = parsed.text || parsed.html || ''
-      const attachments = parsed.attachments || []
-      const messageId = parsed.messageId
-      const inReplyTo = parsed.inReplyTo
-      const references = Array.isArray(parsed.references) ? parsed.references : []
+      logger.info(`Parsed headers: ${JSON.stringify(Object.fromEntries(parsed.headers))}`)
 
       const relayHeader = parsed.headers.get('x-relay-processed')
       if (relayHeader === 'true') {
         logger.info('Skipping email with X-Relay-Processed header to avoid loop')
         return callback()
       }
+
+      const subject = parsed.subject || 'No Subject'
+      const text = parsed.text || parsed.html || ''
+      const attachments = parsed.attachments || []
+      const messageId = parsed.messageId
+      const inReplyTo = parsed.inReplyTo
+      const references = Array.isArray(parsed.references) ? parsed.references : []
 
       logger.info('Email received and parsed. Attachments:', attachments.map((a) => a.filename))
       logger.info(`Message-ID: ${messageId}`)
