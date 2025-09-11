@@ -18,9 +18,13 @@ module.exports.saveEmail = async function (to, from, subject, body, attachments 
   try {
     await client.query('BEGIN')
 
+    const referenceIds = Array.isArray(references)
+      ? references.join(', ')
+      : (references ? references : null)
+
     const emailResult = await client.query(
       'INSERT INTO emails (from_email, to_email, subject, body, message_id, in_reply_to, reference_ids) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id',
-      [from, to, subject, body, messageId, inReplyTo, references ? references.join(', ') : null]
+      [from, to, subject, body, messageId, inReplyTo, referenceIds]
     )
 
     const emailId = emailResult.rows[0].id

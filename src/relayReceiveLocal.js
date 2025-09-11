@@ -43,12 +43,17 @@ module.exports.relayReceiveLocal = async function (stream, session, callback, co
       const attachments = parsed.attachments || []
       const messageId = parsed.messageId
       const inReplyTo = parsed.inReplyTo
-      const references = Array.isArray(parsed.references) ? parsed.references : []
+      const references = Array.isArray(parsed.references)
+        ? parsed.references
+        : (parsed.references ? [parsed.references] : [])
+      const referencesText = references.length
+        ? references.join(', ')
+        : 'N/A'
 
       logger.info('Email received and parsed. Attachments:', attachments.map((a) => a.filename))
       logger.info(`Message-ID: ${messageId}`)
       logger.info(`In-Reply-To: ${inReplyTo}`)
-      logger.info(`References: ${references.join(', ')}`)
+      logger.info(`References: ${referencesText}`)
 
       await processEmail(recipients, sender, subject, text, attachments, configData, {
         messageId,
