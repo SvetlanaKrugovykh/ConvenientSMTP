@@ -6,14 +6,6 @@ const { saveEmail } = require('../db/saveEmail')
 const { reSendToTheTelegram } = require('./reSendToTheTg')
 const { forwardEmail } = require('./forwardEmail')
 
-require('dotenv').config()
-const fs = require('fs')
-const path = require('path')
-const logger = require('./logger')
-const { saveEmail } = require('../db/saveEmail')
-const { reSendToTheTelegram } = require('./reSendToTheTg')
-const { forwardEmail } = require('./forwardEmail')
-
 module.exports.processEmail = async function (recipients, sender, subject, text, attachments, configData, metadata) {
   try {
     logger.info('processEmail called', { recipients, sender, subject, attachmentsCount: attachments.length })
