@@ -14,8 +14,11 @@ module.exports.checkBlacklists = async function (ip) {
 
   for (const rbl of RBL_LISTS) {
     try {
-      await dns.resolve(`${reversedIp}.${rbl}`)
-      return true
+      const result = await dns.resolve(`${reversedIp}.${rbl}`)
+      logger.info(`RBL check for ${ip} via ${rbl}: ${result}`)
+      if (result && !result.includes('127.255.255.254')) {
+        return true
+      }
     } catch (err) {
       continue
     }
