@@ -2,8 +2,23 @@ const axios = require('axios')
 const logger = require('./logger')
 require('dotenv').config()
 
+const sentNotifications = new Set()
+
 module.exports = async function notifyDeliveryFailure({ recipient, sender, subject, error }) {
   const botToken = (process.env.TELEGRAM_BOT_NOTIFY_TOKEN || process.env.TELEGRAM_BOT_TOKEN || '').trim()
+  const notificationKey = `${recipient}-${sender}-${subject}-${error?.message || error}`
+
+  if (sentNotifications.has(notificationKey)) {
+    logger.info('Notification already sent, skipping duplicate')
+    return
+  }
+
+  sentNotifications.add(notificationKey)
+  if (sentNotifications.size > 1000) {
+    logger.warn('sentNotifications cache too large, clearing')
+    sentNotifications.clear()
+  }
+
   const chatId = (process.env.GROUP_CHAT_ID || '').trim()
   if (!botToken || !chatId) return false
 
@@ -112,3 +127,8 @@ module.exports = async function notifyDeliveryFailure({ recipient, sender, subje
     return false
   }
 }
+
+setInterval(() => {
+  logger.info(`Clearing sentNotifications cache, had ${sentNotifications.size} entries at ${new Date().toISOString()}`)
+  sentNotifications.clear()
+}, 12 * 3600000)
