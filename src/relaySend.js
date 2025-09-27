@@ -6,6 +6,7 @@ const logger = require('./logger')
 const configData = require('./config')
 
 const notifyDeliveryFailure = require('./deliverRelay')
+const sentDeliveryFailures = new Set()
 
 const simpleParser = require('mailparser').simpleParser
 require('dotenv').config()
@@ -84,12 +85,18 @@ module.exports.relaySend = async function (stream, session, callback, serverConf
       } catch (err) {
         logger.error(`Error sending mail to ${recipient}:`, err)
         try {
-          await notifyDeliveryFailure({
-            recipient,
-            sender,
-            subject,
-            error: err
-          })
+          const failureKey = `${recipient}|${sender}|${subject}|${err?.message || err}`
+          if (sentDeliveryFailures.has(failureKey)) {
+            logger.info(`Delivery failure notification already sent for: ${failureKey}`)
+          } else {
+            sentDeliveryFailures.add(failureKey)
+            await notifyDeliveryFailure({
+              recipient,
+              sender,
+              subject,
+              error: err
+            })
+          }
         } catch (notifyErr) {
           logger.warn('notifyDeliveryFailure failed:', notifyErr && (notifyErr.message || notifyErr))
         }
@@ -195,3 +202,8 @@ function getMimeType(filename) {
       return 'application/octet-stream'
   }
 }
+
+setInterval(() => {
+  logger.info(`Clearing sentDeliveryFailures cache, had ${sentDeliveryFailures.size} entries`)
+  sentDeliveryFailures.clear()
+}, 24 * 3600000)
