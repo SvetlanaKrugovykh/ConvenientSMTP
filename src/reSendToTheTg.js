@@ -46,13 +46,13 @@ module.exports.reSendToTheTelegram = async function (to, from, subject, text, at
               : 'N/A'
 
             let tgMessage = `📧 *Received Email*\n\n` +
-              `*From:* ${escapeMarkdown(fixedFrom)}\n` +
-              `*To:* ${escapeMarkdown(recipient)}\n` +
-              `*Subject:* ${escapeMarkdown(fixedSubject)}\n` +
-              `*Message Body:*\n${escapeMarkdown(cleanText)}\n\n` +
-              `*Message-ID:* ${escapeMarkdown(metadata?.messageId || 'N/A')}\n` +
-              `*In-Reply-To:* ${escapeMarkdown(metadata?.inReplyTo || 'N/A')}\n` +
-              `*References:* ${escapeMarkdown(referencesText)}\n`
+              `*From:* ${processHeaderField(fixedFrom)}\n` +
+              `*To:* ${processHeaderField(recipient)}\n` +
+              `*Subject:* ${processHeaderField(fixedSubject)}\n` +
+              `*Message Body:*\n${processLinksAndText(cleanText)}\n\n` +
+              `*Message-ID:* ${processHeaderField(metadata?.messageId || 'N/A')}\n` +
+              `*In-Reply-To:* ${processHeaderField(metadata?.inReplyTo || 'N/A')}\n` +
+              `*References:* ${processHeaderField(referencesText)}\n`
 
             tgMessage = tgMessage.replace(/[\u0000-\u001F\u007F-\u009F]/g, (char) => {
               return ['\n', '\r'].includes(char) ? char : ''
@@ -127,6 +127,36 @@ function fixEncoding(text) {
   }
 
   return text
+}
+
+function processLinksAndText(text) {
+  if (!text) return ''
+  
+  // Find all URLs and temporarily replace them with placeholders
+  const urls = []
+  const urlRegex = /(https?:\/\/[^\s\]]+)/g
+  let tempText = text.replace(urlRegex, (match) => {
+    urls.push(match)
+    return `__URL_PLACEHOLDER_${urls.length - 1}__`
+  })
+  
+  // Escape only critical markdown characters, preserve normal punctuation
+  tempText = tempText.replace(/([_*\[\]()~`>#+=|{}!])/g, '\\$1')
+  
+  // Restore URLs back
+  urls.forEach((url, index) => {
+    tempText = tempText.replace(`__URL_PLACEHOLDER_${index}__`, url)
+  })
+  
+  return tempText
+}
+
+function processHeaderField(text) {
+  if (!text) return ''
+  
+  // For header fields (From, To, Subject), escape only the most critical characters
+  // Preserve dots, commas, colons, and other common email symbols
+  return text.replace(/([_*\[\]`])/g, '\\$1')
 }
 
 function escapeMarkdown(text) {
