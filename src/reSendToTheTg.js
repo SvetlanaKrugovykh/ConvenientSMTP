@@ -131,7 +131,7 @@ function fixEncoding(text) {
 
 function processLinksAndText(text) {
   if (!text) return ''
-  
+
   // Find all URLs and temporarily replace them with placeholders
   const urls = []
   const urlRegex = /(https?:\/\/[^\s\]]+)/g
@@ -139,21 +139,21 @@ function processLinksAndText(text) {
     urls.push(match)
     return `__URL_PLACEHOLDER_${urls.length - 1}__`
   })
-  
+
   // Escape only critical markdown characters, preserve normal punctuation
   tempText = tempText.replace(/([_*\[\]()~`>#+=|{}!])/g, '\\$1')
-  
+
   // Restore URLs back
   urls.forEach((url, index) => {
     tempText = tempText.replace(`__URL_PLACEHOLDER_${index}__`, url)
   })
-  
+
   return tempText
 }
 
 function processHeaderField(text) {
   if (!text) return ''
-  
+
   // For header fields (From, To, Subject), escape only the most critical characters
   // Preserve dots, commas, colons, and other common email symbols
   return text.replace(/([_*\[\]`])/g, '\\$1')
